@@ -1,0 +1,31 @@
+import { requireDm } from '@/lib/session';
+import { saveCharacterDm } from '@/lib/actions/dm';
+import { one, type SearchParams } from '@/lib/format';
+import { generateAccessCode } from '@/lib/codes';
+import { CharacterForm } from '@/components/CharacterForm';
+import { Flash } from '@/components/Flash';
+import { Header, SubHeader } from '@/components/Header';
+
+export default async function NewCharacterPage({ searchParams }: { searchParams: SearchParams }) {
+  await requireDm();
+  const sp = await searchParams;
+  const code = generateAccessCode();
+
+  return (
+    <>
+      <Header title="Characters" />
+      <SubHeader back="/dm/characters" title="New Character" right={code} rightClass="code" />
+      <Flash error={one(sp.error)} ok={one(sp.ok)} />
+      <CharacterForm
+        action={saveCharacterDm}
+        nameEditable
+        code={code}
+        submitLabel="Save Character"
+        initial={{
+          name: '', class: '', level: '', str: '', dex: '', con: '', int_score: '', wis: '', cha: '',
+          invest_proficient: false, invest_expertise: false, invest_bonus: '', slot_bonus: '',
+        }}
+      />
+    </>
+  );
+}
