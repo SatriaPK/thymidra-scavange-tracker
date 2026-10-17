@@ -97,6 +97,44 @@ export function checkFit(capacitySlots: number, usedQ: number, addQuarters: numb
   };
 }
 
+// ---------- Simpan sebagian scrap (inventori hampir penuh) ----------
+
+/** Sisa ruang inventori dalam kuartal (0 bila sudah penuh atau melebihi kapasitas). */
+export const freeQuarters = (capacitySlots: number, usedQ: number): number =>
+  Math.max(0, capacitySlots * 4 - usedQ);
+
+/** Batasi jumlah scrap yang disimpan: bilangan bulat, antara 0 dan jumlah yang ada per jenis. */
+export function clampKeepScrap(original: Scrap, keep: Partial<Scrap>): Scrap {
+  const one = (have: number, want: number | undefined) =>
+    Math.min(have, Math.max(0, Number.isFinite(want) ? Math.floor(want as number) : 0));
+  return {
+    bio: one(original.bio, keep.bio),
+    arcane: one(original.arcane, keep.arcane),
+    mech: one(original.mech, keep.mech),
+    ferrous: one(original.ferrous, keep.ferrous),
+  };
+}
+
+/** Saran awal: simpan scrap sebanyak yang muat, diisi berurutan per jenis (bio, arcane, mech, ferrous). */
+export function suggestKeepScrap(original: Scrap, freeQ: number): Scrap {
+  let room = Math.floor(freeQ / SCRAP_QUARTERS);
+  const out = emptyScrap();
+  for (const type of ['bio', 'arcane', 'mech', 'ferrous'] as const) {
+    const take = Math.min(original[type], room);
+    out[type] = take;
+    room -= take;
+  }
+  return out;
+}
+
+/** Scrap yang dibuang = scrap asli dikurangi yang disimpan. */
+export const remainderScrap = (original: Scrap, keep: Scrap): Scrap => ({
+  bio: original.bio - keep.bio,
+  arcane: original.arcane - keep.arcane,
+  mech: original.mech - keep.mech,
+  ferrous: original.ferrous - keep.ferrous,
+});
+
 // ---------- Dadu ----------
 
 export const rollDie = (rng: Rng, sides: number): number => 1 + Math.floor(rng() * sides);

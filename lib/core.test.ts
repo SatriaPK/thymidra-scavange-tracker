@@ -23,6 +23,10 @@ import {
   lowSuccessScrapCount,
   rollLowSuccessScrap,
   scrapTotal,
+  freeQuarters,
+  clampKeepScrap,
+  suggestKeepScrap,
+  remainderScrap,
 } from './core';
 
 /** RNG deterministik: mengembalikan nilai dari daftar secara berurutan. */
@@ -395,6 +399,41 @@ describe('Low Success dan High Success', () => {
     const withG = resolveScavenge(seq(dieValue(10, 20), dieValue(4, 4), 0.1), { ...base, guidance: true, modifier: 0, intModifier: 2 }, zone);
     expect(withG.roll.total).toBe(14);
     expect(withG.kind).toBe('low_success');
+  });
+});
+
+describe('simpan sebagian scrap', () => {
+  const scrap = { bio: 3, arcane: 0, mech: 2, ferrous: 4 };
+
+  it('freeQuarters: sisa ruang dalam kuartal, tidak pernah negatif', () => {
+    expect(freeQuarters(19, 4 * 18)).toBe(4);
+    expect(freeQuarters(19, 4 * 19)).toBe(0);
+    expect(freeQuarters(19, 4 * 21)).toBe(0); // melebihi kapasitas
+  });
+
+  it('suggestKeepScrap mengisi berurutan sampai ruang habis', () => {
+    expect(suggestKeepScrap(scrap, 4)).toEqual({ bio: 3, arcane: 0, mech: 1, ferrous: 0 });
+    expect(suggestKeepScrap(scrap, 0)).toEqual(emptyScrap());
+    expect(suggestKeepScrap(scrap, 400)).toEqual(scrap);
+  });
+
+  it('suggestKeepScrap selalu muat di ruang yang ada', () => {
+    for (let free = 0; free <= 12; free++) {
+      expect(checkFit(10, 10 * 4 - free, scrapTotal(suggestKeepScrap(scrap, free)) * 1).fits).toBe(true);
+    }
+  });
+
+  it('clampKeepScrap membatasi ke 0..jumlah asli dan membulatkan ke bawah', () => {
+    expect(clampKeepScrap(scrap, { bio: 99, arcane: 5, mech: -3, ferrous: 2.9 })).toEqual({ bio: 3, arcane: 0, mech: 0, ferrous: 2 });
+    expect(clampKeepScrap(scrap, { bio: NaN })).toEqual(emptyScrap());
+    expect(clampKeepScrap(scrap, {})).toEqual(emptyScrap());
+  });
+
+  it('remainderScrap = asli dikurangi yang disimpan; simpan + buang = asli', () => {
+    const keep = clampKeepScrap(scrap, { bio: 1, mech: 2, ferrous: 0 });
+    const drop = remainderScrap(scrap, keep);
+    expect(drop).toEqual({ bio: 2, arcane: 0, mech: 0, ferrous: 4 });
+    expect(scrapTotal(keep) + scrapTotal(drop)).toBe(scrapTotal(scrap));
   });
 });
 

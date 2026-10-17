@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ConfirmDialog } from './ConfirmDialog';
 import { CloseIcon, DownloadIcon, PencilIcon, SearchIcon, TrashIcon } from './Icons';
 
 export interface ListRow {
@@ -29,6 +30,9 @@ export function SelectableList({ rows, entity, searchPlaceholder, deleteAction, 
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<ListRow | null>(null);
+  // Form hapus yang menunggu konfirmasi lewat modal, dan form yang sudah dikonfirmasi (lolos satu kali).
+  const [ask, setAsk] = useState<{ form: HTMLFormElement; count: number } | null>(null);
+  const confirmed = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -58,9 +62,15 @@ export function SelectableList({ rows, entity, searchPlaceholder, deleteAction, 
     });
 
   const confirmDelete = (e: React.FormEvent<HTMLFormElement>, count: number) => {
-    const noun = count === 1 ? entity.toLowerCase() : `${entity.toLowerCase()}s`;
-    if (!window.confirm(`Delete ${count} ${noun}? This cannot be undone.`)) e.preventDefault();
+    if (confirmed.current === e.currentTarget) {
+      confirmed.current = null;
+      return; // sudah dikonfirmasi di modal, lanjutkan submit
+    }
+    e.preventDefault();
+    setAsk({ form: e.currentTarget, count });
   };
+
+  const askNoun = ask ? (ask.count === 1 ? entity.toLowerCase() : `${entity.toLowerCase()}s`) : '';
 
   return (
     <>
@@ -168,6 +178,22 @@ export function SelectableList({ rows, entity, searchPlaceholder, deleteAction, 
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!ask}
+        title={`Delete ${askNoun}?`}
+        message={ask ? `Delete ${ask.count} ${askNoun}? This cannot be undone.` : ''}
+        confirmLabel="Delete"
+        danger
+        onCancel={() => setAsk(null)}
+        onConfirm={() => {
+          const form = ask?.form;
+          setAsk(null);
+          if (!form) return;
+          confirmed.current = form;
+          form.requestSubmit();
+        }}
+      />
     </>
   );
 }

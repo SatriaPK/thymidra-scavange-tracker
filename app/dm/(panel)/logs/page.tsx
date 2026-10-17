@@ -40,8 +40,8 @@ function describe(row: LogRow): string {
     }
     case 'decision':
       if (p.action === 'discard') return `Discarded ${p.qty ? `${p.qty}x ` : ''}${p.name}`;
-      if (p.action === 'breakdown') return `Broke down ${p.qty ? `${p.qty}x ` : ''}${p.name}${p.scrap ? ` → ${scrapText(p.scrap)}` : ''}`;
-      return `Kept ${p.name} in ${p.dest === 'storage' ? 'Storage' : 'Inventory'}`;
+      if (p.action === 'breakdown') return `Broke down ${p.qty ? `${p.qty}x ` : ''}${p.name}${p.scrap && scrapText(p.scrap) ? ` → ${scrapText(p.scrap)}` : ''}${p.dropped_scrap ? `, discarded ${scrapText(p.dropped_scrap)}` : ''}`;
+      return `Kept ${p.name}${p.scrap && scrapText(p.scrap) ? ` (${scrapText(p.scrap)})` : ''} in ${p.dest === 'storage' ? 'Storage' : 'Inventory'}${p.dropped_scrap ? `, discarded ${scrapText(p.dropped_scrap)}` : ''}`;
     case 'transfer':
       return `Moved ${p.qty ? `${p.qty}x ` : ''}${p.name}: ${p.from} → ${p.to}`;
     case 'trade':

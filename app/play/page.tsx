@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { requirePlayer } from '@/lib/session';
-import { MAX_SCAVENGES_PER_DAY, abilityMod, canBreakdown, checkFit, investigationModifier, itemQuarters, proficiencyBonus, quartersToSlots, remainingScavenges, scrapQuarters, wibDay, type OutcomeKind, type RollMode } from '@/lib/core';
+import { MAX_SCAVENGES_PER_DAY, abilityMod, canBreakdown, freeQuarters, investigationModifier, itemQuarters, proficiencyBonus, quartersToSlots, remainingScavenges, scrapQuarters, wibDay, type OutcomeKind, type RollMode } from '@/lib/core';
 import { one, sign, yieldText, type SearchParams } from '@/lib/format';
 import { loadInventory, toItemDef } from '@/lib/inventory';
 import { decideFind, scavenge } from '@/lib/actions/scavenge';
@@ -10,6 +10,7 @@ import { Flash } from '@/components/Flash';
 import { PlayShell } from '@/components/PlayShell';
 import { AutoRefresh } from '@/components/AutoRefresh';
 import { RollControls, RollButton } from '@/components/RollButton';
+import { FindActions } from '@/components/FindActions';
 import type { Campaign, Item, Zone } from '@/lib/types';
 
 interface Pending { id: string; item_id: string | null; scrap: { bio: number; arcane: number; mech: number; ferrous: number } | null }
@@ -136,8 +137,6 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
               const def = item ? toItemDef(item) : null;
               const keepQ = def ? itemQuarters(def) : p.scrap ? scrapQuarters(p.scrap) : 0;
               const breakQ = def && canBreakdown(def) ? scrapQuarters(def.yield) : 0;
-              const keepFits = checkFit(inv.capacity, inv.usedQ, keepQ).fits;
-              const breakFits = checkFit(inv.capacity, inv.usedQ, breakQ).fits;
               const name = item?.name ?? 'Loose Scrap';
               return (
                 <div key={p.id} className="find">
@@ -149,18 +148,18 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
                     {item ? (def && canBreakdown(def) ? `Breaks into: ${yieldText(item)}` : 'Wondrous: no slot, cannot be broken down') : scrapLine(p.scrap!)}
                   </div>
                   {item?.description && <div className="hint">{item.description}</div>}
-                  {!keepFits && <div className="warn">Inventory full. Keep it in Storage or discard it.</div>}
-                  <form className="btns">
-                    <button type="submit" formAction={decideFind.bind(null, p.id, `keep:${keepFits ? 'inventory' : 'storage'}`)} className="btn btn-sm">
-                      {keepFits ? 'Keep' : 'Keep in Storage'}
-                    </button>
-                    {def && canBreakdown(def) && (
-                      <button type="submit" formAction={decideFind.bind(null, p.id, `breakdown:${breakFits ? 'inventory' : 'storage'}`)} className="btn btn-sm">
-                        {breakFits ? 'Breakdown' : 'Breakdown to Storage'}
-                      </button>
-                    )}
-                    <button type="submit" formAction={decideFind.bind(null, p.id, 'discard')} className="btn btn-sm btn-red">Discard</button>
-                  </form>
+                  <FindActions
+                    key={`${p.id}-${one(sp.error) ?? ''}`}
+                    findId={p.id}
+                    name={name}
+                    isScrap={!item}
+                    keepQ={keepQ}
+                    canBreakdown={!!def && canBreakdown(def)}
+                    breakQ={breakQ}
+                    freeQ={freeQuarters(inv.capacity, inv.usedQ)}
+                    scrap={p.scrap}
+                    yieldScrap={def && canBreakdown(def) ? def.yield : null}
+                  />
                 </div>
               );
             })}

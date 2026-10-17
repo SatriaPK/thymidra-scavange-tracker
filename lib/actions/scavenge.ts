@@ -10,9 +10,11 @@ import {
   abilityMod,
   canBreakdown,
   checkFit,
+  clampKeepScrap,
   cryptoRng,
   investigationModifier,
   itemQuarters,
+  remainderScrap,
   resolveScavenge,
   scrapQuarters,
   scrapTotal,
@@ -131,16 +133,25 @@ export async function scavenge(formData: FormData) {
 
 const decisionSchema = z.object({
   find_id: uuid,
-  // "keep:inventory", "keep:storage", "breakdown:inventory", "breakdown:storage", "discard"
-  choice: z.string().regex(/^(keep|breakdown):(inventory|storage)$|^discard$/),
+  // "keep:inventory", "keep:storage", "breakdown:inventory", "breakdown:storage", "discard",
+  // serta "keep-partial:inventory" / "breakdown-partial:inventory" (simpan sebagian scrap, sisanya dibuang)
+  choice: z.string().regex(/^(keep|breakdown):(inventory|storage)$|^(keep|breakdown)-partial:inventory$|^discard$/),
 });
 
-export async function decideFind(findId: string, choice: string, _formData?: FormData) {
+const scrapLabel = (s: Scrap): string =>
+  (['bio', 'arcane', 'mech', 'ferrous'] as const)
+    .filter((k) => s[k] > 0)
+    .map((k) => `${s[k]} ${k[0].toUpperCase()}${k.slice(1)}`)
+    .join(', ');
+
+export async function decideFind(findId: string, choice: string, formData?: FormData) {
   const me = await requirePlayer();
   const parsed = decisionSchema.safeParse({ find_id: findId, choice });
   if (!parsed.success) go(HOME, 'error', 'Invalid choice.');
   const { find_id } = parsed.data;
-  const [action, destRaw] = parsed.data.choice.split(':') as ['keep' | 'breakdown' | 'discard', string | undefined];
+  const [rawAction, destRaw] = parsed.data.choice.split(':') as [string, string | undefined];
+  const partial = rawAction.endsWith('-partial');
+  const action = rawAction.replace('-partial', '') as 'keep' | 'breakdown' | 'discard';
   const dest = isLocation(destRaw) ? destRaw : 'inventory';
 
   const { data } = await db().from('pending_find').select('*').eq('id', find_id).eq('character_id', me.id).maybeSingle();
@@ -161,12 +172,22 @@ export async function decideFind(findId: string, choice: string, _formData?: For
   // Apa yang akan ditambahkan, dan berapa kuartal?
   let addItem = false;
   let addScrap: Scrap | null = null;
+  let droppedScrap: Scrap | null = null; // hanya terisi pada "simpan sebagian": scrap yang dibuang agar muat
   if (action === 'keep') {
     if (item) addItem = true;
     else addScrap = find.scrap;
   } else if (action === 'breakdown') {
     if (!item || !canBreakdown(toItemDef(item))) go(HOME, 'error', 'This cannot be broken down.');
     addScrap = toItemDef(item).yield;
+  }
+
+  if (partial) {
+    // Hanya untuk scrap (loose scrap atau hasil breakdown). Jumlah yang disimpan diambil dari form modal.
+    if (!addScrap || addItem) go(HOME, 'error', 'Invalid choice.');
+    const num = (k: string) => Number(formData?.get(`keep_${k}`) ?? 0);
+    const keep = clampKeepScrap(addScrap, { bio: num('bio'), arcane: num('arcane'), mech: num('mech'), ferrous: num('ferrous') });
+    droppedScrap = remainderScrap(addScrap, keep);
+    addScrap = keep;
   }
 
   const addQ = (addItem && item ? itemQuarters(toItemDef(item)) : 0) + (addScrap ? scrapQuarters(addScrap) : 0);
@@ -183,19 +204,28 @@ export async function decideFind(findId: string, choice: string, _formData?: For
 
   let ok = true;
   if (addItem && item) ok = await changeHolding(me.id, item.id, dest, 1);
-  if (ok && addScrap) ok = await changeScrap(me.id, dest, addScrap);
+  if (ok && addScrap && scrapTotal(addScrap) > 0) ok = await changeScrap(me.id, dest, addScrap);
   if (!ok) {
     await db().from('pending_find').insert({ id: find.id, character_id: me.id, item_id: find.item_id, scrap: find.scrap });
     go(HOME, 'error', 'Could not save. Try again.');
   }
 
-  await writeLog(me, 'decision', { action, dest: action === 'discard' ? null : dest, name, scrap: addScrap, item_id: item?.id ?? null });
+  await writeLog(me, 'decision', {
+    action,
+    dest: action === 'discard' ? null : dest,
+    name,
+    scrap: addScrap,
+    dropped_scrap: droppedScrap && scrapTotal(droppedScrap) > 0 ? droppedScrap : null,
+    item_id: item?.id ?? null,
+  });
   revalidatePath(HOME);
   revalidatePath('/play/inventory');
   revalidatePath('/play/storage');
 
   const where = dest === 'storage' ? 'Storage' : 'Inventory';
-  const msg =
-    action === 'discard' ? `${name} discarded.` : action === 'breakdown' ? `${name} broken down into scrap (${where}).` : `${name} kept in ${where}.`;
+  const dropNote = droppedScrap && scrapTotal(droppedScrap) > 0 ? `, discarded ${scrapLabel(droppedScrap)}` : '';
+  const msg = partial
+    ? `${name}: kept ${addScrap && scrapTotal(addScrap) > 0 ? scrapLabel(addScrap) : 'nothing'} in ${where}${dropNote}.`
+    : action === 'discard' ? `${name} discarded.` : action === 'breakdown' ? `${name} broken down into scrap (${where}).` : `${name} kept in ${where}.`;
   go(HOME, 'ok', msg);
 }

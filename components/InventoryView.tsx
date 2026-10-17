@@ -56,6 +56,8 @@ export function InventoryView({ inv, loc, selected }: { inv: Inventory; loc: Loc
                       <ConfirmSubmit
                         formAction={itemAction.bind(null, 'discard')}
                         className="btn btn-sm btn-red"
+                        dialogTitle="Discard item?"
+                        confirmLabel="Discard"
                         message={`Discard ${h.item.name}? This cannot be undone.`}
                       >
                         Discard
@@ -117,6 +119,8 @@ export function InventoryView({ inv, loc, selected }: { inv: Inventory; loc: Loc
               <ConfirmSubmit
                 formAction={scrapAction.bind(null, 'discard')}
                 className="btn btn-sm btn-red"
+                dialogTitle="Discard scrap?"
+                confirmLabel="Discard"
                 message={`Discard ${pick[1]} scrap? This cannot be undone.`}
               >
                 Discard

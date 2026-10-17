@@ -550,3 +550,13 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .88rem; table-lay
   .dm-workspace table.tbl { font-size: .95rem; }
   .dm-workspace .tbl th, .dm-workspace .tbl td { padding: 12px; }
 }
+/* ---------- Modal pilihan (inventori penuh) ---------- */
+.modal .opts { display: grid; gap: 10px; padding: 14px 16px; }
+.modal .opts + .opts { border-top: 1px solid var(--ink); }
+.modal .opts .btn { width: 100%; }
+.modal .opts .note { margin: 0; color: var(--muted); font-size: .88rem; }
+.modal .opts .note[data-bad='true'] { color: var(--red); }
+.modal .opts .btn:disabled { opacity: .45; cursor: not-allowed; }
+.keep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.keep-grid label { display: grid; gap: 4px; font-size: .82rem; }
+.keep-grid input { width: 100%; }
