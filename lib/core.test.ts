@@ -20,6 +20,9 @@ import {
   type Rng,
   type ZoneConfig,
   rollLooseScrap,
+  lowSuccessScrapCount,
+  rollLowSuccessScrap,
+  scrapTotal,
 } from './core';
 
 /** RNG deterministik: mengembalikan nilai dari daftar secara berurutan. */
@@ -132,7 +135,7 @@ describe('slot dan scrap', () => {
 
 describe('roll scavenge', () => {
   it('Nat 1 otomatis gagal walau total jauh di atas DC, dan memberi exhaustion', () => {
-    const o = resolveScavenge(seq(dieValue(1, 20)), { modifier: 30, advantage: false, guidance: false }, zone);
+    const o = resolveScavenge(seq(dieValue(1, 20)), { modifier: 30, advantage: false, guidance: false, intModifier: 0 }, zone);
     expect(o.roll.nat1).toBe(true);
     expect(o.kind).toBe('fail');
     expect(o.exhaustion).toBe(true);
@@ -140,17 +143,17 @@ describe('roll scavenge', () => {
   });
 
   it('total < DC gagal tanpa exhaustion', () => {
-    const o = resolveScavenge(seq(dieValue(5, 20)), { modifier: 2, advantage: false, guidance: false }, zone);
+    const o = resolveScavenge(seq(dieValue(5, 20)), { modifier: 2, advantage: false, guidance: false, intModifier: 0 }, zone);
     expect(o.roll.total).toBe(7);
     expect(o.kind).toBe('fail');
     expect(o.exhaustion).toBe(false);
   });
 
-  it('total sama dengan DC berhasil', () => {
-    const o = resolveScavenge(seq(dieValue(10, 20), 0), { modifier: 2, advantage: false, guidance: false }, zone);
+  it('total sama dengan DC berhasil (Low Success)', () => {
+    const o = resolveScavenge(seq(dieValue(10, 20), 0), { modifier: 2, advantage: false, guidance: false, intModifier: 0 }, zone);
     expect(o.roll.total).toBe(12);
-    expect(o.kind).toBe('success');
-    expect(o.itemIds).toHaveLength(1);
+    expect(o.roll.success).toBe(true);
+    expect(o.kind).toBe('low_success');
   });
 
   it('Advantage mengambil dadu tertinggi', () => {
@@ -224,7 +227,7 @@ describe('roll scavenge', () => {
 
 describe('Nat 20: Rare Find vs Jackpot', () => {
   it('rng < 0,25 menghasilkan Rare Find', () => {
-    const o = resolveScavenge(seq(dieValue(20, 20), 0.1, 0.5), { modifier: 0, advantage: false, guidance: false }, zone);
+    const o = resolveScavenge(seq(dieValue(20, 20), 0.1, 0.5), { modifier: 0, advantage: false, guidance: false, intModifier: 0 }, zone);
     expect(o.kind).toBe('rare');
     expect(o.itemIds).toEqual(['relik']);
   });
@@ -234,7 +237,7 @@ describe('Nat 20: Rare Find vs Jackpot', () => {
     for (const [face, count] of Object.entries(expected)) {
       const o = resolveScavenge(
         seq(dieValue(20, 20), 0.5, dieValue(Number(face), 4), 0.1, 0.9),
-        { modifier: 0, advantage: false, guidance: false },
+        { modifier: 0, advantage: false, guidance: false, intModifier: 0 },
         zone,
       );
       expect(o.kind).toBe('jackpot');
@@ -244,7 +247,7 @@ describe('Nat 20: Rare Find vs Jackpot', () => {
   });
 
   it('Jackpot juga memberi Loose Scrap', () => {
-    const o = resolveScavenge(seq(dieValue(20, 20), 0.99, dieValue(2, 4), 0.1, 0.9), { modifier: 0, advantage: false, guidance: false }, zone);
+    const o = resolveScavenge(seq(dieValue(20, 20), 0.99, dieValue(2, 4), 0.1, 0.9), { modifier: 0, advantage: false, guidance: false, intModifier: 0 }, zone);
     expect(o.kind).toBe('jackpot');
     expect(o.looseScrap).toBeDefined();
     const total = o.looseScrap!.bio + o.looseScrap!.arcane + o.looseScrap!.mech + o.looseScrap!.ferrous;
@@ -287,7 +290,7 @@ describe('Nat 20: Rare Find vs Jackpot', () => {
   it('tanpa pool Rare Find, jatuh ke Jackpot', () => {
     const o = resolveScavenge(
       seq(dieValue(20, 20), 0.1, 0.99, 0.1, 0.9),
-      { modifier: 0, advantage: false, guidance: false },
+      { modifier: 0, advantage: false, guidance: false, intModifier: 0 },
       { ...zone, rareItems: [] },
     );
     expect(o.kind).toBe('jackpot');
@@ -307,13 +310,91 @@ describe('Nat 20: Rare Find vs Jackpot', () => {
         }
         return rng();
       };
-      const o = resolveScavenge(r, { modifier: 0, advantage: false, guidance: false }, zone);
+      const o = resolveScavenge(r, { modifier: 0, advantage: false, guidance: false, intModifier: 0 }, zone);
       if (o.kind === 'rare') rare++;
       if (o.kind === 'jackpot') jackpot++;
     }
     expect(rare / 10000).toBeGreaterThan(0.22);
     expect(rare / 10000).toBeLessThan(0.28);
     expect(rare + jackpot).toBe(10000);
+  });
+});
+
+describe('Low Success dan High Success', () => {
+  // zone.dc = 12, jadi Low Success = total 12-16, High Success = total >= 17
+  const base = { advantage: false, guidance: false };
+  const rollTotal = (total: number, intModifier: number, rng?: Rng) =>
+    resolveScavenge(rng ?? seq(dieValue(total, 20), 0.1, 0.1, 0.1), { ...base, modifier: 0, intModifier }, zone);
+
+  it('batas: DC-1 Fail, DC Low, DC+4 Low, DC+5 High', () => {
+    expect(rollTotal(11, 4).kind).toBe('fail');
+    expect(rollTotal(12, 4).kind).toBe('low_success');
+    expect(rollTotal(16, 4).kind).toBe('low_success');
+    expect(rollTotal(17, 4).kind).toBe('high_success');
+    expect(rollTotal(19, 4).kind).toBe('high_success');
+  });
+
+  it('Low Success tidak memberi item, hanya loose scrap', () => {
+    const o = rollTotal(14, 4);
+    expect(o.itemIds).toEqual([]);
+    expect(o.looseScrap).toBeDefined();
+    expect(scrapTotal(o.looseScrap!)).toBe(2);
+    expect(o.exhaustion).toBe(false);
+  });
+
+  it('High Success memberi 1 junk item utuh dari pool biasa, tanpa loose scrap', () => {
+    const o = rollTotal(18, 4, seq(dieValue(18, 20), 0));
+    expect(o.itemIds).toEqual(['kerang']);
+    expect(o.looseScrap).toBeUndefined();
+  });
+
+  it('jumlah loose scrap = floor(mod INT / 2), minimal 0', () => {
+    const expected: [number, number][] = [[-5, 0], [-1, 0], [0, 0], [1, 0], [2, 1], [3, 1], [4, 2], [5, 2], [6, 3]];
+    for (const [mod, count] of expected) expect(lowSuccessScrapCount(mod)).toBe(count);
+  });
+
+  it('INT mod 0-1 atau minus: Low Success tetap tercatat tapi tidak dapat apa-apa', () => {
+    for (const mod of [-2, 0, 1]) {
+      const o = rollTotal(13, mod);
+      expect(o.kind).toBe('low_success');
+      expect(o.itemIds).toEqual([]);
+      expect(scrapTotal(o.looseScrap ?? emptyScrap())).toBe(0);
+    }
+  });
+
+  it('tiap loose scrap diundi tipenya sendiri-sendiri (boleh sama)', () => {
+    // bio, bio, ferrous, mech: rng 0.1 -> bio, 0.1 -> bio, 0.9 -> ferrous, 0.6 -> mech
+    const s = rollLowSuccessScrap(seq(0.1, 0.1, 0.9, 0.6), 4);
+    expect(s).toEqual({ bio: 2, arcane: 0, mech: 1, ferrous: 1 });
+  });
+
+  it('distribusi tipe loose scrap merata dan total = jumlah (10.000 sampel)', () => {
+    const rng = seeded(11);
+    const sum = emptyScrap();
+    for (let i = 0; i < 10000; i++) {
+      const s = rollLowSuccessScrap(rng, 2);
+      expect(scrapTotal(s)).toBe(2);
+      sum.bio += s.bio;
+      sum.arcane += s.arcane;
+      sum.mech += s.mech;
+      sum.ferrous += s.ferrous;
+    }
+    for (const v of Object.values(sum)) {
+      expect(v / 20000).toBeGreaterThan(0.23);
+      expect(v / 20000).toBeLessThan(0.27);
+    }
+  });
+
+  it('Nat 20 dan Nat 1 tidak terpengaruh margin DC', () => {
+    expect(resolveScavenge(seq(dieValue(20, 20), 0.5, dieValue(2, 4), 0.1, 0.9), { ...base, modifier: -30, intModifier: 4 }, zone).kind).toBe('jackpot');
+    expect(resolveScavenge(seq(dieValue(1, 20)), { ...base, modifier: 30, intModifier: 4 }, zone).kind).toBe('fail');
+  });
+
+  it('Guidance ikut menentukan tingkat hasil lewat total', () => {
+    // d20 = 10, mod 0, Guidance d4 = 4 -> total 14 (Low); tanpa Guidance total 10 (Fail)
+    const withG = resolveScavenge(seq(dieValue(10, 20), dieValue(4, 4), 0.1), { ...base, guidance: true, modifier: 0, intModifier: 2 }, zone);
+    expect(withG.roll.total).toBe(14);
+    expect(withG.kind).toBe('low_success');
   });
 });
 

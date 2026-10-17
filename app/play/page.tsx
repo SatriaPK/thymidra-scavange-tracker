@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { requirePlayer } from '@/lib/session';
-import { MAX_SCAVENGES_PER_DAY, abilityMod, canBreakdown, checkFit, investigationModifier, itemQuarters, proficiencyBonus, quartersToSlots, remainingScavenges, scrapQuarters, wibDay, type RollMode } from '@/lib/core';
+import { MAX_SCAVENGES_PER_DAY, abilityMod, canBreakdown, checkFit, investigationModifier, itemQuarters, proficiencyBonus, quartersToSlots, remainingScavenges, scrapQuarters, wibDay, type OutcomeKind, type RollMode } from '@/lib/core';
 import { one, sign, yieldText, type SearchParams } from '@/lib/format';
 import { loadInventory, toItemDef } from '@/lib/inventory';
 import { decideFind, scavenge } from '@/lib/actions/scavenge';
@@ -16,7 +16,7 @@ interface Pending { id: string; item_id: string | null; scrap: { bio: number; ar
 
 interface LastScavenge {
   roll: { d20Rolls: number[]; d20: number; guidanceRoll: number; modifier: number; total: number; dc: number; nat1: boolean; nat20: boolean; success: boolean; mode: RollMode };
-  kind: 'fail' | 'success' | 'jackpot' | 'rare';
+  kind: OutcomeKind;
   items: { name: string }[];
   loose_scrap: { bio: number; arcane: number; mech: number; ferrous: number } | null;
   exhaustion: boolean;

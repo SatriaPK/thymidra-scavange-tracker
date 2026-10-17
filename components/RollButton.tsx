@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { rollMode, type RollMode } from '@/lib/core';
+import { rollMode, type OutcomeKind, type RollMode } from '@/lib/core';
 import { Dice } from './Dice';
 
 interface RollResult {
@@ -14,13 +14,16 @@ interface RollResult {
   nat20: boolean;
   success: boolean;
   mode: RollMode;
-  kind: 'fail' | 'success' | 'jackpot' | 'rare';
+  kind: OutcomeKind;
 }
 
 function verdict(result: RollResult): string {
   if (result.nat20) return 'Critical Success';
   if (result.nat1) return 'Critical Fail';
-  return result.success ? 'Success' : 'Fail';
+  if (!result.success) return 'Fail';
+  if (result.kind === 'low_success') return 'Low Success';
+  if (result.kind === 'high_success') return 'High Success';
+  return 'Success'; // log lama sebelum ada Low/High Success
 }
 
 export function RollControls({ result }: { result?: RollResult | null }) {

@@ -7,6 +7,7 @@ import { requirePlayer } from '@/lib/session';
 import { go } from '@/lib/flash';
 import {
   MAX_SCAVENGES_PER_DAY,
+  abilityMod,
   canBreakdown,
   checkFit,
   cryptoRng,
@@ -89,6 +90,7 @@ export async function scavenge(formData: FormData) {
     cryptoRng,
     {
       modifier,
+      intModifier: abilityMod(me.int_score),
       advantage: checked(formData, 'advantage'),
       disadvantage: checked(formData, 'disadvantage'),
       guidance: checked(formData, 'guidance'),
@@ -102,6 +104,7 @@ export async function scavenge(formData: FormData) {
     zone: { id: zone.id, no: zone.zone_no, name: zone.name, dc: zone.dc },
     roll: outcome.roll,
     kind: outcome.kind,
+    int_modifier: abilityMod(me.int_score),
     jackpot_die: outcome.jackpotDie ?? null,
     items: outcome.itemIds.map((id) => ({ id, name: items.get(id)?.name ?? '?' })),
     loose_scrap: loose,

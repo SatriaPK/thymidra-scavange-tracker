@@ -12,8 +12,14 @@ interface LogRow {
   created_at: string;
 }
 
-const LABELS = ['Failed', 'Success', 'JACKPOT', 'RARE FIND'];
-const KIND: Record<string, string> = { fail: LABELS[0], success: LABELS[1], jackpot: LABELS[2], rare: LABELS[3] };
+const KIND: Record<string, string> = {
+  fail: 'Failed',
+  low_success: 'Low Success',
+  high_success: 'High Success',
+  success: 'Success', // log lama sebelum ada Low/High Success
+  jackpot: 'JACKPOT',
+  rare: 'RARE FIND',
+};
 
 function scrapText(s: unknown): string {
   const o = (s ?? {}) as Record<string, number>;

@@ -38,7 +38,9 @@ Input: level, 6 ability score, proficiency Investigation (ya/tidak), expertise (
 3. Total = d20 + modifier Investigation + (Guidance ? 1d4 : 0).
 4. Hasil, dievaluasi dari atas ke bawah:
    - **Nat 1**: otomatis gagal, karakter dapat **+1 Exhaustion di sesi berikutnya** (penanda di dashboard DM, tombol "sudah diterapkan").
-   - **Nat 20**: otomatis berhasil, lalu randomize lagi: **25% Rare Find** (1 item dari pool Rare Find) / **75% Jackpot** (N item dari pool biasa, N = hasil **d4**, hasil 1 dihitung 2, jadi N = 2, 2, 3, atau 4).
+   - **Nat 20**: otomatis berhasil, lalu randomize lagi: **25% Rare Find** (1 item dari pool Rare Find) / **75% Jackpot**.
+     - Jackpot: N item dari pool biasa, N = hasil **d4** dibatasi 2-3 (hasil 1 dihitung 2, hasil 4 dihitung 3, jadi N = 2, 2, 3, atau 3).
+     - Jackpot juga memberi **loose scrap** tambahan: d4 jenis scrap berbeda (dipilih acak), masing-masing d4 unit.
    - **Fail** (total < DC): tidak dapat apa-apa.
    - **Low Success** (DC <= total < DC + 5): dapat **loose scrap** sejumlah `N = max(0, floor(mod(INT) / 2))`.
      - Tipe tiap loose scrap diundi sendiri-sendiri secara acak dari 4 jenis (bio, arcane, mech, ferrous), jadi tipe boleh sama.
@@ -48,7 +50,7 @@ Input: level, 6 ability score, proficiency Investigation (ya/tidak), expertise (
    - **High Success** (total >= DC + 5): dapat **1 junk item utuh**, dipilih acak berdasarkan bobot dari pool biasa zona.
 5. Setiap hasil ditampilkan, lalu player memilih satu:
    - **Item** (High Success, Jackpot, Rare Find): **Simpan**, **Breakdown**, atau **Buang**.
-   - **Loose scrap** (Low Success): **Simpan** atau **Buang** (sudah berupa scrap, tidak ada Breakdown).
+   - **Loose scrap** (Low Success, Jackpot): **Simpan** atau **Buang** (sudah berupa scrap, tidak ada Breakdown).
 6. Batas **3x scavenge per hari nyata**, reset pukul **00.00 WIB** (zona waktu Asia/Jakarta, dihitung di server).
 
 Ringkasan:
@@ -56,7 +58,7 @@ Ringkasan:
 | Kondisi | Hasil |
 |---|---|
 | Nat 1 | Gagal + 1 Exhaustion sesi berikutnya |
-| Nat 20 | 25% Rare Find / 75% Jackpot |
+| Nat 20 | 25% Rare Find / 75% Jackpot (2-3 item + loose scrap d4 jenis × d4 unit) |
 | Total < DC | Fail, tidak dapat apa-apa |
 | DC <= total < DC + 5 | Low Success: `max(0, floor(mod(INT) / 2))` loose scrap, tipe acak per scrap |
 | Total >= DC + 5 | High Success: 1 junk item utuh |

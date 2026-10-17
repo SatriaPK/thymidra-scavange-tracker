@@ -6,6 +6,7 @@ export type Rng = () => number; // mengembalikan angka di [0, 1)
 export const SCRAP_QUARTERS = 1; // 1 unit scrap = 0,25 slot = 1 kuartal
 export const MAX_SCAVENGES_PER_DAY = 3;
 export const RARE_FIND_CHANCE = 0.25; // Nat 20: 25% Rare Find, 75% Jackpot
+export const HIGH_SUCCESS_MARGIN = 5; // total >= DC + 5 = High Success; DC sampai DC + 4 = Low Success
 
 // ---------- Karakter ----------
 
@@ -215,7 +216,23 @@ export function rollLooseScrap(rng: Rng): Scrap {
   return out;
 }
 
-export type OutcomeKind = 'fail' | 'success' | 'jackpot' | 'rare';
+/**
+ * 'success' adalah kind lama (sebelum ada Low/High Success), dipertahankan hanya agar log lama tetap terbaca.
+ * resolveScavenge tidak lagi menghasilkannya.
+ */
+export type OutcomeKind = 'fail' | 'low_success' | 'high_success' | 'success' | 'jackpot' | 'rare';
+
+/** Jumlah loose scrap Low Success = floor(modifier INT / 2), minimal 0 (modifier minus tidak memberi apa-apa). */
+export const lowSuccessScrapCount = (intModifier: number): number => Math.max(0, Math.floor(intModifier / 2));
+
+/** Loose scrap Low Success: tiap scrap (1 unit) diundi tipenya sendiri-sendiri, tipe boleh sama. */
+export function rollLowSuccessScrap(rng: Rng, count: number): Scrap {
+  const out = emptyScrap();
+  for (let i = 0; i < count; i++) {
+    out[SCRAP_TYPES[Math.floor(rng() * SCRAP_TYPES.length)]] += 1;
+  }
+  return out;
+}
 
 export interface ScavengeOutcome {
   roll: ScavengeRoll;
@@ -223,18 +240,24 @@ export interface ScavengeOutcome {
   itemIds: string[];
   /** Hasil d4 jumlah item, hanya terisi untuk Jackpot. */
   jackpotDie?: number;
-  /** Loose Scrap tambahan, hanya terisi untuk Jackpot. */
+  /** Loose Scrap: hasil Low Success, atau tambahan pada Jackpot. */
   looseScrap?: Scrap;
   /** Nat 1: karakter mendapat +1 Exhaustion di sesi berikutnya. */
   exhaustion: boolean;
 }
 
+export interface ScavengeResolveInput extends Omit<ScavengeRollInput, 'dc'> {
+  /** Modifier ability Intelligence murni (tanpa proficiency/bonus), dipakai untuk jumlah loose scrap Low Success. */
+  intModifier: number;
+}
+
 export function resolveScavenge(
   rng: Rng,
-  input: Omit<ScavengeRollInput, 'dc'>,
+  input: ScavengeResolveInput,
   zone: ZoneConfig,
 ): ScavengeOutcome {
-  const roll = rollScavenge(rng, { ...input, dc: zone.dc });
+  const { intModifier, ...rollInput } = input;
+  const roll = rollScavenge(rng, { ...rollInput, dc: zone.dc });
 
   if (!roll.success) {
     return { roll, kind: 'fail', itemIds: [], exhaustion: roll.nat1 };
@@ -256,8 +279,14 @@ export function resolveScavenge(
     return { roll, kind: 'jackpot', itemIds: ids, jackpotDie: die, looseScrap, exhaustion: false };
   }
 
+  // Selain Nat 1 / Nat 20: DC sampai DC + 4 = Low Success (loose scrap), DC + 5 ke atas = High Success (1 junk item)
+  if (roll.total < zone.dc + HIGH_SUCCESS_MARGIN) {
+    const looseScrap = rollLowSuccessScrap(rng, lowSuccessScrapCount(intModifier));
+    return { roll, kind: 'low_success', itemIds: [], looseScrap, exhaustion: false };
+  }
+
   const id = weightedPick(rng, zone.items);
-  return { roll, kind: 'success', itemIds: id ? [id] : [], exhaustion: false };
+  return { roll, kind: 'high_success', itemIds: id ? [id] : [], exhaustion: false };
 }
 
 // ---------- Batas harian (reset 00.00 WIB) ----------
