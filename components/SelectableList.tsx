@@ -31,7 +31,7 @@ export function SelectableList({ rows, entity, searchPlaceholder, deleteAction, 
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<ListRow | null>(null);
   // Form hapus yang menunggu konfirmasi lewat modal, dan form yang sudah dikonfirmasi (lolos satu kali).
-  const [ask, setAsk] = useState<{ form: HTMLFormElement; count: number } | null>(null);
+  const [ask, setAsk] = useState<{ form: HTMLFormElement; titles: string[] } | null>(null);
   const confirmed = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
@@ -61,16 +61,24 @@ export function SelectableList({ rows, entity, searchPlaceholder, deleteAction, 
       return next;
     });
 
-  const confirmDelete = (e: React.FormEvent<HTMLFormElement>, count: number) => {
+  const confirmDelete = (e: React.FormEvent<HTMLFormElement>, titles: string[]) => {
     if (confirmed.current === e.currentTarget) {
       confirmed.current = null;
       return; // sudah dikonfirmasi di modal, lanjutkan submit
     }
     e.preventDefault();
-    setAsk({ form: e.currentTarget, count });
+    setAsk({ form: e.currentTarget, titles });
   };
 
-  const askNoun = ask ? (ask.count === 1 ? entity.toLowerCase() : `${entity.toLowerCase()}s`) : '';
+  const askNoun = ask ? (ask.titles.length === 1 ? entity.toLowerCase() : `${entity.toLowerCase()}s`) : '';
+  const MAX_NAMES = 6;
+  const askMessage = !ask
+    ? ''
+    : ask.titles.length === 1
+      ? `Delete "${ask.titles[0]}"? This cannot be undone.`
+      : `Delete ${ask.titles.length} ${askNoun}? This cannot be undone.\n\n` +
+        ask.titles.slice(0, MAX_NAMES).map((t) => `• ${t}`).join('\n') +
+        (ask.titles.length > MAX_NAMES ? `\n…and ${ask.titles.length - MAX_NAMES} more` : '');
 
   return (
     <>
@@ -107,7 +115,7 @@ export function SelectableList({ rows, entity, searchPlaceholder, deleteAction, 
               <Link href={r.editHref} className="icon-plain" aria-label={`Edit ${r.title}`}>
                 <PencilIcon />
               </Link>
-              <form action={deleteAction} onSubmit={(e) => confirmDelete(e, 1)}>
+              <form action={deleteAction} onSubmit={(e) => confirmDelete(e, [r.title])}>
                 <input type="hidden" name="ids" value={r.id} />
                 <button type="submit" className="icon-plain" aria-label={`Delete ${r.title}`}>
                   <TrashIcon />
@@ -130,7 +138,7 @@ export function SelectableList({ rows, entity, searchPlaceholder, deleteAction, 
             >
               <DownloadIcon />
             </a>
-            <form action={deleteAction} onSubmit={(e) => confirmDelete(e, selectedIds.length)}>
+            <form action={deleteAction} onSubmit={(e) => confirmDelete(e, rows.filter((r) => selectedIds.includes(r.id)).map((r) => r.title))}>
               {selectedIds.map((id) => (
                 <input key={id} type="hidden" name="ids" value={id} />
               ))}
@@ -182,7 +190,7 @@ export function SelectableList({ rows, entity, searchPlaceholder, deleteAction, 
       <ConfirmDialog
         open={!!ask}
         title={`Delete ${askNoun}?`}
-        message={ask ? `Delete ${ask.count} ${askNoun}? This cannot be undone.` : ''}
+        message={askMessage}
         confirmLabel="Delete"
         danger
         onCancel={() => setAsk(null)}

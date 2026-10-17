@@ -63,7 +63,7 @@ export function ConfirmDialog({
           </button>
         </header>
         <div className="block" style={{ borderTop: 0 }}>
-          <p id={textId} style={{ marginTop: 0, color: 'var(--ink)' }}>{message}</p>
+          <p id={textId} style={{ marginTop: 0, color: 'var(--ink)', whiteSpace: 'pre-line' }}>{message}</p>
         </div>
         <div className="actions-row">
           <button ref={cancelRef} type="button" className="btn btn-ghost" onClick={onCancel}>{cancelLabel}</button>
