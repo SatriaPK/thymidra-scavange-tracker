@@ -58,3 +58,15 @@ export interface Character {
   pending_exhaustion: number;
   setup_done: boolean;
 }
+
+export interface Trade {
+  id: string;
+  campaign_id: string;
+  from_character: string;
+  to_character: string;
+  mode: 'give' | 'swap';
+  offer: unknown; // { items: [{ item_id, qty }], scrap: { bio, arcane, mech, ferrous } }
+  request: unknown | null; // hanya untuk swap
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  created_at: string;
+}

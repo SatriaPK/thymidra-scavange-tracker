@@ -6,6 +6,7 @@ const TABS = [
   ['/play', 'Home'],
   ['/play/inventory', 'Inventory'],
   ['/play/storage', 'Storage'],
+  ['/play/barter', 'Barter'],
   ['/play/character', 'Character'],
 ] as const;
 

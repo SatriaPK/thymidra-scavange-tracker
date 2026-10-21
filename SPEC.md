@@ -73,14 +73,18 @@ Ringkasan:
 
 ## Barter
 
-- Mode **Kasih** (sepihak) dan **Tukar** (A menawarkan X, minta Y).
-- Penerima harus **menerima**; barang pindah hanya setelah diterima.
-- Kapasitas penerima dicek; jika penuh, tidak bisa menerima sebelum membuat ruang.
-- Atomik: bila barang berubah/hilang sebelum diterima, tawaran batal otomatis.
+- Mode **Kasih** (sepihak) dan **Tukar** (A menawarkan X, minta Y). Tukar harus berisi barang di kedua sisi.
+- Hanya isi **Inventory** yang bisa dibarter (bukan Storage). Barang masuk ke Inventory penerima.
+- Pengirim memilih karakter tujuan, lalu jumlah per item dan per jenis scrap. Di mode Tukar, pengirim melihat Inventory penerima untuk memilih yang diminta.
+- Penerima harus **menerima**; barang pindah hanya setelah diterima. Penerima juga bisa **menolak**, dan pengirim bisa **membatalkan** selama masih pending.
+- Barang tidak dikunci saat tawaran dibuat. Semua dicek ulang saat diterima.
+- Kapasitas dicek saat diterima, dengan selisih bersih: pada Tukar, barang yang dilepas dihitung dulu. Jika penerima penuh, tombol Terima nonaktif sampai ruangnya ada, dan tawaran tetap pending. Pada Tukar, pengirim juga harus punya ruang untuk barang yang diminta.
+- Atomik: bila barang berubah/hilang sebelum diterima, tawaran batal otomatis. Jika perpindahan gagal di tengah jalan, semua perubahan dikembalikan dan tawaran kembali pending.
+- Maksimal 5 tawaran pending per pengirim.
 - Scrap bisa dibarter per jenis dan jumlah.
 
 ## Log dan Undo
 
-- Semua scavenge (roll, hasil, pilihan), breakdown, pemindahan, dan barter tercatat.
+- Semua scavenge (roll, hasil, pilihan), breakdown, pemindahan, dan barter (tawaran, diterima, ditolak, dibatalkan, batal otomatis) tercatat.
 - Log scavenge menyimpan tingkat hasil (Nat 1, Nat 20, Fail, Low Success, High Success) dan jumlah serta tipe loose scrap bila ada.
 - DM dapat melihat seluruh log dan membatalkan aksi tertentu.

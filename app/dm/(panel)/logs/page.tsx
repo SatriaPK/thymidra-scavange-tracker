@@ -44,8 +44,25 @@ function describe(row: LogRow): string {
       return `Kept ${p.name}${p.scrap && scrapText(p.scrap) ? ` (${scrapText(p.scrap)})` : ''} in ${p.dest === 'storage' ? 'Storage' : 'Inventory'}${p.dropped_scrap ? `, discarded ${scrapText(p.dropped_scrap)}` : ''}`;
     case 'transfer':
       return `Moved ${p.qty ? `${p.qty}x ` : ''}${p.name}: ${p.from} → ${p.to}`;
-    case 'trade':
-      return 'Trade';
+    case 'trade': {
+      const from = p.from?.name ?? '?';
+      const to = p.to?.name ?? '?';
+      const what = p.mode === 'swap' ? `${p.offer_text} ⇄ ${p.request_text}` : p.offer_text;
+      switch (p.action) {
+        case 'offered':
+          return p.mode === 'swap' ? `Offered a swap to ${to}: ${what}` : `Offered ${p.offer_text} to ${to}`;
+        case 'accepted':
+          return p.mode === 'swap' ? `Swap accepted: ${from} ⇄ ${to} (${what})` : `Gift accepted: ${from} → ${to} (${p.offer_text})`;
+        case 'declined':
+          return `Declined the offer from ${from} (${what})`;
+        case 'cancelled':
+          return `Cancelled the offer to ${to} (${what})`;
+        case 'auto_cancelled':
+          return `Offer from ${from} to ${to} cancelled automatically: items changed (${what})`;
+        default:
+          return `Trade (${what})`;
+      }
+    }
     default:
       return row.kind;
   }

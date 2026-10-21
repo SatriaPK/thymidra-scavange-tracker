@@ -41,6 +41,11 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
     db().from('log').select('payload, created_at').eq('character_id', me.id).eq('kind', 'scavenge').order('created_at', { ascending: false }).limit(1),
     loadInventory(me),
   ]);
+  const { count: incomingTrades } = await db()
+    .from('trade')
+    .select('id', { count: 'exact', head: true })
+    .eq('to_character', me.id)
+    .eq('status', 'pending');
   const campaign = campRes.data as Campaign | null;
   const used = (dayRes.data as { used: number } | null)?.used ?? 0;
   const left = remainingScavenges(used);
@@ -85,6 +90,11 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
     <PlayShell title={me.name} active="/play">
       <AutoRefresh />
       <Flash error={one(sp.error)} ok={one(sp.ok)} />
+      {(incomingTrades ?? 0) > 0 && (
+        <p className="hint" style={{ marginBottom: 10 }}>
+          You have {incomingTrades} trade offer{incomingTrades === 1 ? '' : 's'}. <Link href="/play/barter">Open Barter</Link>
+        </p>
+      )}
 
       <main className="player-dashboard-grid">
         <section className="sec">

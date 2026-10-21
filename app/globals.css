@@ -560,3 +560,11 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .88rem; table-lay
 .keep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
 .keep-grid label { display: grid; gap: 4px; font-size: .82rem; }
 .keep-grid input { width: 100%; }
+
+/* ---------- Barter ---------- */
+.trade-list { display: grid; border: 1px solid var(--ink); }
+.trade-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; }
+.trade-row + .trade-row { border-top: 1px solid var(--ink); }
+.trade-name { display: grid; min-width: 0; }
+.trade-name .subline { font-size: .8rem; color: var(--muted); }
+.trade-row input { width: 80px; flex-shrink: 0; }
