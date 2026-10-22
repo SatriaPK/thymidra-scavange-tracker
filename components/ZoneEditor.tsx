@@ -91,6 +91,18 @@ export function ZoneEditor({ items, initial }: { items: PickerItem[]; initial: Z
         return next;
       });
 
+    // Select All / Deselect All berlaku untuk item yang sedang tampil (hasil pencarian ikut dihitung).
+    const allSelected = list.length > 0 && list.every((i) => i.id in pool);
+    const toggleAll = () =>
+      setPool((prev) => {
+        const next = { ...prev };
+        for (const i of list) {
+          if (allSelected) delete next[i.id];
+          else if (!(i.id in next)) next[i.id] = DEFAULT_WEIGHT; // bobot item yang sudah dipilih tidak diubah
+        }
+        return next;
+      });
+
     return (
       <>
         <div className="sub rule">
@@ -105,6 +117,13 @@ export function ZoneEditor({ items, initial }: { items: PickerItem[]; initial: Z
             <SearchIcon />
             <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search item..." aria-label="Search item" />
           </label>
+          {list.length > 0 && (
+            <div className="actions-row" style={{ justifyContent: 'flex-start', margin: '8px 0' }}>
+              <button type="button" className="btn btn-sm btn-ghost" onClick={toggleAll}>
+                {allSelected ? 'Deselect All' : 'Select All'}{q ? ' (shown)' : ''}
+              </button>
+            </div>
+          )}
           {list.length === 0 ? (
             <p className="empty">{eligible.length === 0 ? `No ${isRare ? 'Wondrous' : 'Junk'} items yet. Create some first.` : 'No match.'}</p>
           ) : (
