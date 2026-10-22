@@ -41,6 +41,12 @@ export default async function CharacterViewPage({
       <SubHeader back="/dm/characters" title={c.name} right={c.access_code} rightClass="code" />
       <Flash error={one(sp.error)} ok={one(sp.ok)} />
 
+      {!c.setup_done && (
+        <p className="hint" style={{ margin: '12px 16px' }}>
+          The player has not filled in this character yet, so the values below are placeholders.
+        </p>
+      )}
+
       <div className="rows">
         <div className="kv rule"><span className="k">Class</span><span className="v">{c.class || '-'}</span></div>
         <div className="kv"><span className="k">Character Level</span><span className="v">{c.level}</span></div>

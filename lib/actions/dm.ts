@@ -349,42 +349,44 @@ export async function setZoneEnabled(formData: FormData) {
 
 // ======================= Karakter =======================
 
-const characterSchema = z.object({
+// DM hanya mengurus nama dan kode akses karakter. Class, level, dan stat diisi pemain sendiri
+// (lihat saveCharacter di lib/actions/player.ts).
+const characterNameSchema = z.object({
   name: z.string().trim().min(1, 'is required').max(40),
-  class: z.string().trim().min(1, 'is required').max(40),
-  level: reqInt(1, 20),
-  str: reqInt(1, 30),
-  dex: reqInt(1, 30),
-  con: reqInt(1, 30),
-  int_score: reqInt(1, 30),
-  wis: reqInt(1, 30),
-  cha: reqInt(1, 30),
-  invest_bonus: intField(-10, 30),
-  slot_bonus: intField(-20, 100),
 });
+
+// Nilai awal sebelum pemain mengisi karakternya (sama dengan default di schema.sql).
+const CHARACTER_DEFAULTS = {
+  class: '',
+  level: 1,
+  str: 10,
+  dex: 10,
+  con: 10,
+  int_score: 10,
+  wis: 10,
+  cha: 10,
+  invest_proficient: false,
+  invest_expertise: false,
+  invest_bonus: 0,
+  slot_bonus: 0,
+};
 
 export async function saveCharacterDm(formData: FormData) {
   const campaign = await requireDm();
   const id = String(formData.get('id') ?? '');
   const back = id ? `/dm/characters/${id}/edit` : '/dm/characters/new';
 
-  const parsed = characterSchema.safeParse(raw(formData));
+  const parsed = characterNameSchema.safeParse(raw(formData));
   if (!parsed.success) go(back, 'error', firstIssue(parsed.error));
-
-  const proficient = formData.get('invest_proficient') === 'on';
-  const row = {
-    ...parsed.data,
-    invest_proficient: proficient,
-    invest_expertise: proficient && formData.get('invest_expertise') === 'on', // expertise hanya bila proficient
-    setup_done: true,
-  };
+  const { name } = parsed.data;
   const duplicate = 'That character name is already taken.';
 
   if (id) {
-    const { error } = await db().from('character').update(row).eq('id', id).eq('campaign_id', campaign.id);
+    // Mengedit hanya mengubah nama: stat dan status setup milik pemain tidak disentuh.
+    const { error } = await db().from('character').update({ name }).eq('id', id).eq('campaign_id', campaign.id);
     if (error) go(back, 'error', error.code === '23505' ? duplicate : 'Could not save the character.');
     revalidatePath('/dm/characters');
-    go('/dm/characters', 'ok', `Character "${row.name}" saved.`);
+    go('/dm/characters', 'ok', `Character "${name}" saved.`);
   }
 
   // Kode yang tampil di form (kanan atas) dipakai apa adanya; kalau tidak valid, buat baru.
@@ -393,11 +395,11 @@ export async function saveCharacterDm(formData: FormData) {
   const charNo = (await maxNo('character', 'char_no', campaign.id)) + 1;
   const { error } = await db()
     .from('character')
-    .insert({ ...row, campaign_id: campaign.id, char_no: charNo, access_code: code });
+    .insert({ ...CHARACTER_DEFAULTS, name, setup_done: false, campaign_id: campaign.id, char_no: charNo, access_code: code });
   if (error) go(back, 'error', error.code === '23505' ? duplicate : 'Could not create the character.');
 
   revalidatePath('/dm/characters');
-  go('/dm/characters', 'ok', `Character "${row.name}" (${formatCharId(charNo)}) created. Code: ${code}`);
+  go('/dm/characters', 'ok', `Character "${name}" (${formatCharId(charNo)}) created. Code: ${code}`);
 }
 
 export async function resetCharacterCode(formData: FormData) {

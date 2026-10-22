@@ -34,25 +34,27 @@ export default async function CharactersPage({ searchParams }: { searchParams: S
       id: c.id,
       title: c.name,
       tag: left,
-      sub: `${c.class || '-'} Lv. ${c.level}`,
+      sub: c.setup_done ? `${c.class || '-'} Lv. ${c.level}` : 'Waiting for the player to fill in the character',
       idLabel: `ID: ${formatCharId(c.char_no)}`,
       editHref: `/dm/characters/${c.id}/edit`,
       viewHref: `/dm/characters/${c.id}`,
       details: [
         ['Code', c.access_code],
-        ['Class', c.class || '-'],
-        ['Level', String(c.level)],
+        ['Class', c.setup_done ? c.class || '-' : 'Not filled in yet'],
+        ['Level', c.setup_done ? String(c.level) : '-'],
         [
           'Investigation Modifier',
-          sign(
-            investigationModifier({
-              level: c.level,
-              intScore: c.int_score,
-              proficient: c.invest_proficient,
-              expertise: c.invest_expertise,
-              bonus: c.invest_bonus,
-            }),
-          ),
+          c.setup_done
+            ? sign(
+                investigationModifier({
+                  level: c.level,
+                  intScore: c.int_score,
+                  proficient: c.invest_proficient,
+                  expertise: c.invest_expertise,
+                  bonus: c.invest_bonus,
+                }),
+              )
+            : '-',
         ],
         ['Daily Scavenge', left],
       ],
