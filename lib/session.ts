@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { SignJWT, jwtVerify } from 'jose';
@@ -65,18 +66,22 @@ export async function readSession(): Promise<SessionPayload | null> {
   }
 }
 
-/** Dipanggil di awal setiap halaman DM dan setiap aksi DM. */
-export async function requireDm(): Promise<Campaign> {
+/**
+ * Dipanggil di awal setiap halaman DM dan setiap aksi DM.
+ * Dibungkus cache() React: layout dan halaman yang sama-sama memanggilnya dalam satu request
+ * hanya memicu satu query ke database.
+ */
+export const requireDm = cache(async (): Promise<Campaign> => {
   const s = await readSession();
   if (!s || s.role !== 'dm') redirect('/dm/login');
   const { data } = await db().from('campaign').select('*').eq('id', s.campaignId).maybeSingle();
   const campaign = data as Campaign | null;
   if (!campaign || fingerprint(campaign.dm_code) !== s.fp) redirect('/dm/login');
   return campaign;
-}
+});
 
-/** Dipanggil di awal setiap halaman pemain dan setiap aksi pemain. */
-export async function requirePlayer(): Promise<Character> {
+/** Dipanggil di awal setiap halaman pemain dan setiap aksi pemain (di-cache per request, seperti requireDm). */
+export const requirePlayer = cache(async (): Promise<Character> => {
   const s = await readSession();
   if (!s || s.role !== 'player') redirect('/');
   const { data } = await db()
@@ -88,4 +93,4 @@ export async function requirePlayer(): Promise<Character> {
   const character = data as Character | null;
   if (!character || fingerprint(character.access_code) !== s.fp) redirect('/');
   return character;
-}
+});

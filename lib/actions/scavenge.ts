@@ -37,46 +37,64 @@ interface PendingRow {
 
 // ======================= Scavenge =======================
 
+/** Ambil satu jatah scavenge hari ini. 'limit' = jatah habis, 'retry' = klaim bentrok dengan permintaan lain. */
+async function claimDailyScavenge(characterId: string, day: string): Promise<{ used: number } | 'limit' | 'retry'> {
+  await db().from('scavenge_day').upsert({ character_id: characterId, day, used: 0 }, { onConflict: 'character_id,day', ignoreDuplicates: true });
+  const { data: dayRow } = await db().from('scavenge_day').select('used').eq('character_id', characterId).eq('day', day).maybeSingle();
+  const used = (dayRow as { used: number } | null)?.used ?? 0;
+  if (used >= MAX_SCAVENGES_PER_DAY) return 'limit';
+  const { data: claimed } = await db()
+    .from('scavenge_day')
+    .update({ used: used + 1 })
+    .eq('character_id', characterId)
+    .eq('day', day)
+    .eq('used', used)
+    .select('used');
+  return (claimed ?? []).length === 1 ? { used } : 'retry';
+}
+
+/** Isi pool zona beserta datanya item. */
+async function loadZonePool(zoneId: string): Promise<{ entries: ZoneItem[]; items: Map<string, Item> }> {
+  const { data: zi } = await db().from('zone_item').select('*').eq('zone_id', zoneId);
+  const entries = (zi ?? []) as ZoneItem[];
+  const itemIds = [...new Set(entries.map((e) => e.item_id))];
+  const { data: itemRows } = itemIds.length ? await db().from('item').select('*').in('id', itemIds) : { data: [] };
+  return { entries, items: new Map(((itemRows ?? []) as Item[]).map((i) => [i.id, i])) };
+}
+
 export async function scavenge(formData: FormData) {
   const me = await requirePlayer();
   if (!me.setup_done) go('/play/setup', 'error', 'Fill in your character first.');
 
-  const { data: camp } = await db().from('campaign').select('*').eq('id', me.campaign_id).maybeSingle();
-  const campaign = camp as Campaign | null;
+  // Bacaan yang tidak saling bergantung dijalankan bersamaan. Hasilnya tetap diperiksa
+  // dengan urutan yang sama seperti sebelumnya, jadi pesan error-nya tidak berubah.
+  const [{ campaign, zone }, pendingRes] = await Promise.all([
+    (async () => {
+      const { data: camp } = await db().from('campaign').select('*').eq('id', me.campaign_id).maybeSingle();
+      const campaign = camp as Campaign | null;
+      let zone: Zone | null = null;
+      if (campaign?.active_zone_id && campaign.zone_enabled) {
+        const { data: z } = await db().from('zone').select('*').eq('id', campaign.active_zone_id).maybeSingle();
+        zone = z as Zone | null;
+      }
+      return { campaign, zone };
+    })(),
+    // Selesaikan temuan sebelumnya dulu supaya tidak menumpuk.
+    db().from('pending_find').select('id', { count: 'exact', head: true }).eq('character_id', me.id),
+  ]);
   if (!campaign?.active_zone_id) go(HOME, 'error', 'The DM has not set a zone yet.');
   if (!campaign.zone_enabled) go(HOME, 'error', 'Scavenging is disabled right now.');
-
-  // Selesaikan temuan sebelumnya dulu supaya tidak menumpuk.
-  const { count } = await db().from('pending_find').select('id', { count: 'exact', head: true }).eq('character_id', me.id);
-  if ((count ?? 0) > 0) go(HOME, 'error', 'Decide on your current finds before scavenging again.');
-
-  const { data: z } = await db().from('zone').select('*').eq('id', campaign.active_zone_id).maybeSingle();
-  const zone = z as Zone | null;
+  if ((pendingRes.count ?? 0) > 0) go(HOME, 'error', 'Decide on your current finds before scavenging again.');
   if (!zone) go(HOME, 'error', 'Zone not found.');
 
-  // ---- Ambil jatah harian (reset 00.00 WIB) ----
+  // ---- Jatah harian (reset 00.00 WIB) dan pool zona dibaca bersamaan ----
+  // Urutan di dalam klaim jatah tidak diubah (upsert, baca, update bersyarat) supaya tetap aman dari klik ganda.
   const day = wibDay(new Date());
-  await db().from('scavenge_day').upsert({ character_id: me.id, day, used: 0 }, { onConflict: 'character_id,day', ignoreDuplicates: true });
-  const { data: dayRow } = await db().from('scavenge_day').select('used').eq('character_id', me.id).eq('day', day).maybeSingle();
-  const used = (dayRow as { used: number } | null)?.used ?? 0;
-  if (used >= MAX_SCAVENGES_PER_DAY) go(HOME, 'error', `You have used all ${MAX_SCAVENGES_PER_DAY} scavenges today. Resets at 00:00 WIB.`);
-  const { data: claimed } = await db()
-    .from('scavenge_day')
-    .update({ used: used + 1 })
-    .eq('character_id', me.id)
-    .eq('day', day)
-    .eq('used', used)
-    .select('used');
-  if ((claimed ?? []).length !== 1) go(HOME, 'error', 'Please try again.');
-
-  // ---- Pool zona ----
-  const { data: zi } = await db().from('zone_item').select('*').eq('zone_id', zone.id);
-  const entries = (zi ?? []) as ZoneItem[];
-  const itemIds = [...new Set(entries.map((e) => e.item_id))];
-  const { data: itemRows } = itemIds.length
-    ? await db().from('item').select('*').in('id', itemIds)
-    : { data: [] };
-  const items = new Map(((itemRows ?? []) as Item[]).map((i) => [i.id, i]));
+  const [claim, pool] = await Promise.all([claimDailyScavenge(me.id, day), loadZonePool(zone.id)]);
+  if (claim === 'limit') go(HOME, 'error', `You have used all ${MAX_SCAVENGES_PER_DAY} scavenges today. Resets at 00:00 WIB.`);
+  if (claim === 'retry') go(HOME, 'error', 'Please try again.');
+  const used = claim.used;
+  const { entries, items } = pool;
 
   const toPool = (rare: boolean) =>
     entries.filter((e) => e.is_rare === rare && items.has(e.item_id)).map((e) => ({ itemId: e.item_id, weight: e.weight }));
@@ -102,7 +120,7 @@ export async function scavenge(formData: FormData) {
 
   const loose = outcome.looseScrap && scrapTotal(outcome.looseScrap) > 0 ? outcome.looseScrap : null;
 
-  await writeLog(me, 'scavenge', {
+  const logWrite = writeLog(me, 'scavenge', {
     zone: { id: zone.id, no: zone.zone_no, name: zone.name, dc: zone.dc },
     roll: outcome.roll,
     kind: outcome.kind,
@@ -119,11 +137,13 @@ export async function scavenge(formData: FormData) {
     ...outcome.itemIds.map((item_id) => ({ character_id: me.id, item_id })),
     ...(loose ? [{ character_id: me.id, scrap: loose }] : []),
   ];
-  if (pending.length > 0) await db().from('pending_find').insert(pending);
 
-  if (outcome.exhaustion) {
-    await db().from('character').update({ pending_exhaustion: me.pending_exhaustion + 1 }).eq('id', me.id);
-  }
+  // Tiga penulisan ini tidak saling bergantung: dikirim bersamaan, redirect baru setelah semuanya selesai.
+  await Promise.all([
+    logWrite,
+    pending.length > 0 ? db().from('pending_find').insert(pending) : null,
+    outcome.exhaustion ? db().from('character').update({ pending_exhaustion: me.pending_exhaustion + 1 }).eq('id', me.id) : null,
+  ]);
 
   revalidatePath(HOME);
   go(HOME, 'ok', 'Roll complete.');

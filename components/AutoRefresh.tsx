@@ -3,7 +3,9 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-const REFRESH_INTERVAL_MS = 5_000;
+// Tiap refresh menjalankan ulang semua query halaman. 15 detik cukup untuk melihat perubahan dari DM;
+// saat tab kembali aktif, refresh langsung dijalankan (lihat visibilitychange di bawah).
+const REFRESH_INTERVAL_MS = 15_000;
 
 export function AutoRefresh() {
   const router = useRouter();

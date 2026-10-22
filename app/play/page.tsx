@@ -34,32 +34,37 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
   const sp = await searchParams;
   const today = wibDay(new Date());
 
-  const [campRes, dayRes, pendRes, logRes, inv] = await Promise.all([
-    db().from('campaign').select('*').eq('id', me.campaign_id).maybeSingle(),
+  // Semua bacaan dijalankan bersamaan. Rantai yang bergantung (campaign -> zona, temuan -> item)
+  // berjalan di dalam satu cabang, jadi total tinggal 2 perjalanan ke database, bukan 4.
+  const [{ campaign, zone }, dayRes, { pending, items }, logRes, inv] = await Promise.all([
+    (async () => {
+      const { data } = await db().from('campaign').select('*').eq('id', me.campaign_id).maybeSingle();
+      const campaign = data as Campaign | null;
+      let zone: Zone | null = null;
+      if (campaign?.active_zone_id) {
+        const { data: z } = await db().from('zone').select('*').eq('id', campaign.active_zone_id).maybeSingle();
+        zone = z as Zone | null;
+      }
+      return { campaign, zone };
+    })(),
     db().from('scavenge_day').select('used').eq('character_id', me.id).eq('day', today).maybeSingle(),
-    db().from('pending_find').select('*').eq('character_id', me.id).order('created_at'),
+    (async () => {
+      const { data } = await db().from('pending_find').select('*').eq('character_id', me.id).order('created_at');
+      const pending = (data ?? []) as Pending[];
+      const ids = pending.map((p) => p.item_id).filter((v): v is string => !!v);
+      const { data: itemRows } = ids.length ? await db().from('item').select('*').in('id', ids) : { data: [] };
+      return { pending, items: new Map(((itemRows ?? []) as Item[]).map((i) => [i.id, i])) };
+    })(),
     db().from('log').select('payload, created_at').eq('character_id', me.id).eq('kind', 'scavenge').order('created_at', { ascending: false }).limit(1),
     loadInventory(me),
   ]);
-  const campaign = campRes.data as Campaign | null;
   const used = (dayRes.data as { used: number } | null)?.used ?? 0;
   const left = remainingScavenges(used);
-  const pending = (pendRes.data ?? []) as Pending[];
   const lastRow = logRes.data?.[0] as { payload: LastScavenge; created_at: string } | undefined;
   const lastRaw = lastRow?.payload;
   // Roll yang baru terjadi (beberapa detik lalu) diputar dengan animasi dadu.
   const fresh = !!lastRow && Date.now() - new Date(lastRow.created_at).getTime() < 15_000;
   const last = lastRaw && lastRaw.day === today ? lastRaw : null;
-
-  let zone: Zone | null = null;
-  if (campaign?.active_zone_id) {
-    const { data } = await db().from('zone').select('*').eq('id', campaign.active_zone_id).maybeSingle();
-    zone = data as Zone | null;
-  }
-
-  const ids = pending.map((p) => p.item_id).filter((v): v is string => !!v);
-  const { data: itemRows } = ids.length ? await db().from('item').select('*').in('id', ids) : { data: [] };
-  const items = new Map(((itemRows ?? []) as Item[]).map((i) => [i.id, i]));
 
   const invest = investigationModifier({
     level: me.level,
