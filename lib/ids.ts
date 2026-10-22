@@ -17,6 +17,8 @@ export function formatZoneId(no: number): string {
   return out.padStart(3, 'A');
 }
 
+export const formatRecipeId = (no: number): string => `R${String(no).padStart(3, '0')}`;
+
 export const formatCharId = (no: number): string => `C${no}`;
 
 /** 1, "1", "001" -> 1. Selain bilangan bulat >= 1 menghasilkan null. */
@@ -36,4 +38,10 @@ export function parseZoneId(v: string | number): number | null {
   let n = 0;
   for (const ch of s) n = n * 26 + (ch.charCodeAt(0) - 65);
   return n + 1 <= MAX_NO ? n + 1 : null;
+}
+
+/** "R001", "r1", 1 atau "001" -> 1. Selain bilangan bulat >= 1 menghasilkan null. */
+export function parseRecipeId(v: string | number): number | null {
+  if (typeof v === 'number') return parseItemId(v);
+  return parseItemId(v.trim().replace(/^r/i, ''));
 }

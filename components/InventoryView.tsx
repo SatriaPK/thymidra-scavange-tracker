@@ -22,7 +22,8 @@ export function InventoryView({ inv, loc, selected }: { inv: Inventory; loc: Loc
   const scrapQ = scrapTotal(bag.scrap);
   const over = inv.usedQ > inv.capacity * 4;
   const pick = SCRAP.find(([k]) => k === selected && bag.scrap[k] > 0) ?? null;
-  const junk = bag.items.filter((h) => !h.item.is_wondrous);
+  const crafted = bag.items.filter((h) => h.item.is_crafted);
+  const junk = bag.items.filter((h) => !h.item.is_wondrous && !h.item.is_crafted);
   const wondrous = bag.items.filter((h) => h.item.is_wondrous);
 
   const renderRows = (list: typeof bag.items) =>
@@ -37,7 +38,7 @@ export function InventoryView({ inv, loc, selected }: { inv: Inventory; loc: Loc
                       <span className="qty">x{h.quantity}</span>
                     </div>
                     <div className="subline">
-                      ID {formatItemId(h.item.item_no)}{canBreakdown(h.def) ? ` · ${yieldText(h.item)}` : ''}
+                      ID {formatItemId(h.item.item_no)}{canBreakdown(h.def) ? ` · ${yieldText(h.item)}` : h.item.is_crafted ? ' · Crafted' : ''}
                     </div>
                   </summary>
                   <form className="acts">
@@ -136,6 +137,13 @@ export function InventoryView({ inv, loc, selected }: { inv: Inventory; loc: Loc
         <div className="sec-head"><h2>Items <span className="count">({junk.length})</span></h2></div>
         {junk.length === 0 ? <p className="empty">No items.</p> : <div className="list">{renderRows(junk)}</div>}
       </section>
+
+      {crafted.length > 0 && (
+        <section className="sec">
+          <div className="sec-head"><h2>Crafted <span className="count">({crafted.length})</span></h2></div>
+          <div className="list">{renderRows(crafted)}</div>
+        </section>
+      )}
 
       <section className="sec">
         <div className="sec-head"><h2>Wondrous <span className="count">({wondrous.length})</span></h2></div>

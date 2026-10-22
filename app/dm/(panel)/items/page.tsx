@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { requireDm } from '@/lib/session';
 import { deleteItems, importItems } from '@/lib/actions/dm';
 import { formatItemId } from '@/lib/ids';
+import { itemCategory } from '@/lib/item';
 import { one, yieldAll, yieldNonZero, type SearchParams } from '@/lib/format';
 import { Flash } from '@/components/Flash';
 import { Header } from '@/components/Header';
@@ -17,22 +18,24 @@ export default async function ItemsPage({ searchParams }: { searchParams: Search
   const { data } = await db().from('item').select('*').eq('campaign_id', campaign.id).order('item_no');
   const items = (data ?? []) as Item[];
 
-  const rows: ListRow[] = items.map((i) => ({
-    id: i.id,
-    title: i.name,
-    tag: i.is_wondrous ? 'Wondrous' : String(i.slot_weight),
-    sub: i.is_wondrous ? 'Wondrous Item' : yieldAll(i),
-    idLabel: `ID: ${formatItemId(i.item_no)}`,
-    editHref: `/dm/items/${i.id}`,
-    description: i.description ?? '',
-    details: i.is_wondrous
-      ? [['Category', 'Wondrous']]
-      : [
-          ['Category', 'Junk'],
-          ['Slot', String(i.slot_weight)],
-          ['Yield', yieldNonZero(i)],
-        ],
-  }));
+  const rows: ListRow[] = items.map((i) => {
+    const category = itemCategory(i);
+    return {
+      id: i.id,
+      title: i.name,
+      tag: category === 'wondrous' ? 'Wondrous' : String(i.slot_weight),
+      sub: category === 'wondrous' ? 'Wondrous Item' : category === 'crafted' ? 'Crafted Item' : yieldAll(i),
+      idLabel: `ID: ${formatItemId(i.item_no)}`,
+      editHref: `/dm/items/${i.id}`,
+      description: i.description ?? '',
+      details:
+        category === 'wondrous'
+          ? [['Category', 'Wondrous']]
+          : category === 'crafted'
+            ? [['Category', 'Crafted'], ['Slot', String(i.slot_weight)]]
+            : [['Category', 'Junk'], ['Slot', String(i.slot_weight)], ['Yield', yieldNonZero(i)]],
+    };
+  });
 
   return (
     <>

@@ -7,6 +7,7 @@ import { requireDm } from '@/lib/session';
 import { firstIssue, go } from '@/lib/flash';
 import { generateAccessCode } from '@/lib/codes';
 import { formatCharId, formatItemId } from '@/lib/ids';
+import { canJoinPool, itemCategory, type ItemCategory } from '@/lib/item';
 import { missingItemRefs, parseItemsImport, parseZonesImport } from '@/lib/transfer';
 
 const MAX_IMPORT_BYTES = 1_000_000;
@@ -54,7 +55,7 @@ function importErrors(errors: string[]): string {
 // ======================= Item =======================
 
 const itemSchema = z.object({
-  category: z.enum(['junk', 'wondrous']),
+  category: z.enum(['junk', 'wondrous', 'crafted']),
   name: z.string().trim().min(1, 'is required').max(80),
   slot_weight: intField(0, 99),
   yield_bio: intField(0, 99),
@@ -73,19 +74,23 @@ export async function saveItem(formData: FormData) {
   if (!parsed.success) go(back, 'error', firstIssue(parsed.error));
   const d = parsed.data;
   const wondrous = d.category === 'wondrous';
+  const crafted = d.category === 'crafted';
+  const junk = d.category === 'junk';
 
-  // Wondrous: tanpa slot dan tanpa yield.
+  // Wondrous: tanpa slot dan tanpa yield. Crafted: ada slot, tanpa yield.
   const row = {
     name: d.name,
     description: d.description || null,
     is_wondrous: wondrous,
+    is_crafted: crafted,
     slot_weight: wondrous ? 0 : d.slot_weight,
-    yield_bio: wondrous ? 0 : d.yield_bio,
-    yield_arcane: wondrous ? 0 : d.yield_arcane,
-    yield_mech: wondrous ? 0 : d.yield_mech,
-    yield_ferrous: wondrous ? 0 : d.yield_ferrous,
+    yield_bio: junk ? d.yield_bio : 0,
+    yield_arcane: junk ? d.yield_arcane : 0,
+    yield_mech: junk ? d.yield_mech : 0,
+    yield_ferrous: junk ? d.yield_ferrous : 0,
   };
-  if (!wondrous && row.yield_bio + row.yield_arcane + row.yield_mech + row.yield_ferrous === 0) {
+  if (crafted && row.slot_weight < 1) go(back, 'error', 'A crafted item needs a slot of at least 1.');
+  if (junk && row.yield_bio + row.yield_arcane + row.yield_mech + row.yield_ferrous === 0) {
     go(back, 'error', 'A junk item needs at least 1 yield above 0. Use Wondrous Item for items without yield.');
   }
 
@@ -109,13 +114,14 @@ export async function deleteItems(formData: FormData) {
   let blocked = 0;
   for (const id of ids) {
     const { error } = await db().from('item').delete().eq('id', id).eq('campaign_id', campaign.id);
-    // holding.item_id memakai "on delete restrict": item yang dimiliki pemain tidak bisa dihapus.
+    // holding.item_id dan recipe/recipe_item memakai "on delete restrict": item yang dimiliki pemain
+    // atau dipakai resep tidak bisa dihapus.
     if (error) blocked++;
     else deleted++;
   }
   revalidatePath('/dm/items');
   if (blocked > 0) {
-    go('/dm/items', 'error', `${deleted} deleted. ${blocked} could not be deleted because players still hold them.`);
+    go('/dm/items', 'error', `${deleted} deleted. ${blocked} could not be deleted because players still hold them or a recipe uses them.`);
   }
   go('/dm/items', 'ok', `${deleted} item${deleted === 1 ? '' : 's'} deleted.`);
 }
@@ -135,6 +141,7 @@ export async function importItems(formData: FormData) {
     item_no: r.no ?? ++next,
     name: r.name,
     is_wondrous: r.is_wondrous,
+    is_crafted: r.is_crafted,
     slot_weight: r.slot_weight,
     yield_bio: r.yield_bio,
     yield_arcane: r.yield_arcane,
@@ -210,12 +217,12 @@ export async function saveZone(formData: FormData) {
   // Semua item harus milik campaign ini.
   const itemIds = [...new Set([...z.junk, ...z.rare].map((p) => p.item_id))];
   if (itemIds.length > 0) {
-    const { data } = await db().from('item').select('id,is_wondrous').eq('campaign_id', campaign.id).in('id', itemIds);
-    const found = (data ?? []) as { id: string; is_wondrous: boolean }[];
+    const { data } = await db().from('item').select('id,is_wondrous,is_crafted').eq('campaign_id', campaign.id).in('id', itemIds);
+    const found = (data ?? []) as { id: string; is_wondrous: boolean; is_crafted: boolean }[];
     if (found.length !== itemIds.length) go(back, 'error', 'Some items no longer exist. Reload the page.');
-    const wondrous = new Map(found.map((r) => [r.id, r.is_wondrous]));
-    if (z.junk.some((p) => wondrous.get(p.item_id))) go(back, 'error', 'Junk pool cannot contain Wondrous items.');
-    if (z.rare.some((p) => !wondrous.get(p.item_id))) go(back, 'error', 'Rare pool can only contain Wondrous items.');
+    const category = new Map<string, ItemCategory>(found.map((r) => [r.id, itemCategory(r)]));
+    if (z.junk.some((p) => !canJoinPool(category.get(p.item_id)!, false))) go(back, 'error', 'Junk pool can only contain Junk and Crafted items.');
+    if (z.rare.some((p) => !canJoinPool(category.get(p.item_id)!, true))) go(back, 'error', 'Rare pool can only contain Wondrous and Crafted items.');
   }
 
   let zoneId = z.id ?? '';
@@ -266,20 +273,20 @@ export async function importZones(formData: FormData) {
   const parsed = parseZonesImport(await readJsonUpload(formData, back));
   if (!parsed.ok) go(back, 'error', importErrors(parsed.errors));
 
-  const { data: items } = await db().from('item').select('id,item_no,is_wondrous').eq('campaign_id', campaign.id);
-  const itemRows = (items ?? []) as { id: string; item_no: number; is_wondrous: boolean }[];
+  const { data: items } = await db().from('item').select('id,item_no,is_wondrous,is_crafted').eq('campaign_id', campaign.id);
+  const itemRows = (items ?? []) as { id: string; item_no: number; is_wondrous: boolean; is_crafted: boolean }[];
   const itemIdByNo = new Map(itemRows.map((i) => [i.item_no, i.id]));
-  const wondrousByNo = new Map(itemRows.map((i) => [i.item_no, i.is_wondrous]));
+  const categoryByNo = new Map<number, ItemCategory>(itemRows.map((i) => [i.item_no, itemCategory(i)]));
 
   // Cek semua referensi item dulu, sebelum ada yang ditulis.
   const missing = missingItemRefs(parsed.rows, new Set(itemIdByNo.keys()));
   if (missing.length > 0) go(back, 'error', `${importErrors(missing)}. Import the items first.`);
 
-  // Junk pool: tanpa Wondrous. Rare pool: hanya Wondrous.
+  // Junk pool: Junk dan Crafted. Rare pool: Wondrous dan Crafted.
   const wrongPool: string[] = [];
   parsed.rows.forEach((r, idx) => {
-    const badJunk = r.junk.filter((e) => wondrousByNo.get(e.itemNo)).map((e) => formatItemId(e.itemNo));
-    const badRare = r.rare.filter((e) => !wondrousByNo.get(e.itemNo)).map((e) => formatItemId(e.itemNo));
+    const badJunk = r.junk.filter((e) => !canJoinPool(categoryByNo.get(e.itemNo)!, false)).map((e) => formatItemId(e.itemNo));
+    const badRare = r.rare.filter((e) => !canJoinPool(categoryByNo.get(e.itemNo)!, true)).map((e) => formatItemId(e.itemNo));
     if (badJunk.length) wrongPool.push(`Zone #${idx + 1} (${r.name}): Wondrous item ${badJunk.join(', ')} cannot be in junk`);
     if (badRare.length) wrongPool.push(`Zone #${idx + 1} (${r.name}): Junk item ${badRare.join(', ')} cannot be in rare`);
   });

@@ -58,12 +58,17 @@ export interface ItemDef {
   name: string;
   slotWeight: number;
   yield: Scrap;
+  /** Hasil crafting: memakan slot walau tanpa yield. */
+  crafted?: boolean;
 }
 
 export const hasYield = (item: ItemDef): boolean => scrapTotal(item.yield) > 0;
 
-/** Item tanpa yield (mis. Wondrous Item) tidak memakan slot dan tidak bisa di-breakdown. */
-export const itemQuarters = (item: ItemDef): number => (hasYield(item) ? item.slotWeight * 4 : 0);
+/**
+ * Item tanpa yield (mis. Wondrous Item) tidak memakan slot dan tidak bisa di-breakdown.
+ * Pengecualian: item Crafted memakan slot sesuai beratnya, tetap tidak bisa di-breakdown.
+ */
+export const itemQuarters = (item: ItemDef): number => (item.crafted || hasYield(item) ? item.slotWeight * 4 : 0);
 export const canBreakdown = hasYield;
 
 export interface Holding {

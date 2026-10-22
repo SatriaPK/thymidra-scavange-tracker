@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { saveZone } from '@/lib/actions/dm';
 import { dropChances } from '@/lib/core';
 import { formatItemId } from '@/lib/ids';
+import { canJoinPool, type ItemCategory } from '@/lib/item';
 import { ChevronLeftIcon, SearchIcon } from './Icons';
 import { PoolTable, type PoolRow } from './PoolTable';
 
@@ -13,7 +14,7 @@ export interface PickerItem {
   no: number;
   name: string;
   slot: number; // 0 = tanpa slot
-  wondrous: boolean;
+  category: ItemCategory;
   yieldText: string;
 }
 
@@ -30,9 +31,9 @@ type View = 'form' | 'junk' | 'rare';
 type Pool = Record<string, number>;
 
 const DEFAULT_WEIGHT = 10;
-/** Junk pool hanya berisi item Junk, Rare pool hanya berisi Wondrous. */
+/** Junk pool: item Junk dan Crafted. Rare pool: item Wondrous dan Crafted. */
 const toPool = (list: { item_id: string; weight: number }[], items: PickerItem[], rare: boolean): Pool => {
-  const ok = new Set(items.filter((i) => i.wondrous === rare).map((i) => i.id));
+  const ok = new Set(items.filter((i) => canJoinPool(i.category, rare)).map((i) => i.id));
   return Object.fromEntries(list.filter((e) => ok.has(e.item_id)).map((e) => [e.item_id, e.weight]));
 };
 
@@ -76,8 +77,8 @@ export function ZoneEditor({ items, initial }: { items: PickerItem[]; initial: Z
     const pool = isRare ? rare : junk;
     const setPool = isRare ? setRare : setJunk;
     const q = query.trim().toLowerCase();
-    // Junk pool otomatis tanpa Wondrous; Rare pool otomatis hanya Wondrous.
-    const eligible = items.filter((i) => i.wondrous === isRare);
+    // Junk pool: Junk + Crafted. Rare pool: Wondrous + Crafted.
+    const eligible = items.filter((i) => canJoinPool(i.category, isRare));
     const list = q
       ? eligible.filter((i) => `${i.name} ${formatItemId(i.no)}`.toLowerCase().includes(q))
       : eligible;
@@ -106,16 +107,18 @@ export function ZoneEditor({ items, initial }: { items: PickerItem[]; initial: Z
             <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search item..." aria-label="Search item" />
           </label>
           {list.length === 0 ? (
-            <p className="empty">{eligible.length === 0 ? `No ${isRare ? 'Wondrous' : 'Junk'} items yet. Create some first.` : 'No match.'}</p>
+            <p className="empty">{eligible.length === 0 ? `No ${isRare ? 'Wondrous or Crafted' : 'Junk or Crafted'} items yet. Create some first.` : 'No match.'}</p>
           ) : (
             <div className="list">
               {list.map((i) => (
                 <button key={i.id} type="button" className="pick" aria-pressed={i.id in pool} onClick={() => toggle(i.id)}>
                   <div>
                     <span className="title">{i.name}</span>
-                    <span className="tag">[ {i.wondrous ? 'Wondrous' : i.slot} ]</span>
+                    <span className="tag">[ {i.category === 'wondrous' ? 'Wondrous' : i.slot} ]</span>
                   </div>
-                  <div className="subline">{i.wondrous ? `ID ${formatItemId(i.no)} · Wondrous` : `ID ${formatItemId(i.no)} · ${i.yieldText}`}</div>
+                  <div className="subline">
+                    {i.category === 'junk' ? `ID ${formatItemId(i.no)} · ${i.yieldText}` : `ID ${formatItemId(i.no)} · ${i.category === 'crafted' ? 'Crafted' : 'Wondrous'}`}
+                  </div>
                 </button>
               ))}
             </div>

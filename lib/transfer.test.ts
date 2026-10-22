@@ -54,6 +54,21 @@ describe('import item', () => {
     expect(r.ok && r.rows[0]).toMatchObject({ is_wondrous: true, slot_weight: 0, yield_bio: 0 });
   });
 
+  it('crafted: slot dipertahankan, yield dipaksa 0, slot minimal 1', () => {
+    const r = parseItemsImport([{ name: 'Pedang', category: 'crafted', slot: 3, yield: { bio: 9 } }]);
+    expect(r.ok && r.rows[0]).toMatchObject({ is_crafted: true, is_wondrous: false, slot_weight: 3, yield_bio: 0 });
+    expect(parseItemsImport([{ name: 'Pedang', category: 'crafted', slot: 0 }]).ok).toBe(false);
+  });
+
+  it('crafted ikut export dan import ulang', () => {
+    const exported = buildItemsExport([
+      { item_no: 1, name: 'Pedang', slot_weight: 2, is_wondrous: false, is_crafted: true, yield_bio: 0, yield_arcane: 0, yield_mech: 0, yield_ferrous: 0, description: null },
+    ]);
+    expect(exported.items[0]).toMatchObject({ category: 'crafted', slot: 2 });
+    const back = parseItemsImport(JSON.parse(JSON.stringify(exported)));
+    expect(back.ok && back.rows[0]).toMatchObject({ is_crafted: true, slot_weight: 2 });
+  });
+
   it('junk tanpa yield ditolak', () => {
     const r = parseItemsImport([{ name: 'Batu', category: 'junk', slot: 1 }]);
     expect(r.ok).toBe(false);

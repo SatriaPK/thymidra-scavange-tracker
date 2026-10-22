@@ -1,6 +1,7 @@
 // Format JSON untuk import/export item dan zona. Semua fungsi murni (tanpa database).
 import { z } from 'zod';
 import { formatItemId, formatZoneId, parseItemId, parseZoneId } from './ids';
+import { itemCategory, type ItemCategory } from './item';
 
 export const MAX_IMPORT_ROWS = 1000;
 
@@ -9,7 +10,7 @@ export const MAX_IMPORT_ROWS = 1000;
 export interface ItemExportRow {
   id: number;
   name: string;
-  category: 'junk' | 'wondrous';
+  category: ItemCategory;
   slot: number;
   yield: { arcane: number; bio: number; ferrous: number; mech: number };
   description: string;
@@ -20,6 +21,7 @@ export interface ItemLike {
   name: string;
   slot_weight: number;
   is_wondrous: boolean;
+  is_crafted?: boolean;
   yield_bio: number;
   yield_arcane: number;
   yield_mech: number;
@@ -34,7 +36,7 @@ export function buildItemsExport(items: ItemLike[]) {
     .map((i) => ({
       id: i.item_no,
       name: i.name,
-      category: i.is_wondrous ? 'wondrous' : 'junk',
+      category: itemCategory(i),
       slot: i.is_wondrous ? 0 : i.slot_weight,
       yield: { arcane: i.yield_arcane, bio: i.yield_bio, ferrous: i.yield_ferrous, mech: i.yield_mech },
       description: i.description ?? '',
@@ -48,7 +50,7 @@ const idField = z.union([z.number(), z.string()]);
 const itemRowSchema = z.object({
   id: idField.optional(),
   name: z.string().trim().min(1, 'name is required').max(80),
-  category: z.enum(['junk', 'wondrous']),
+  category: z.enum(['junk', 'wondrous', 'crafted']),
   slot: small.optional(),
   yield: z
     .object({ arcane: small.optional(), bio: small.optional(), ferrous: small.optional(), mech: small.optional() })
@@ -60,6 +62,7 @@ export interface ItemImportRow {
   no: number | null;
   name: string;
   is_wondrous: boolean;
+  is_crafted: boolean;
   slot_weight: number;
   yield_bio: number;
   yield_arcane: number;
@@ -106,19 +109,26 @@ export function parseItemsImport(raw: unknown): ParseResult<ItemImportRow> {
     }
 
     const wondrous = d.category === 'wondrous';
+    const crafted = d.category === 'crafted';
+    const junk = d.category === 'junk';
     const y = d.yield ?? {};
     const row: ItemImportRow = {
       no,
       name: d.name,
       is_wondrous: wondrous,
+      is_crafted: crafted,
       slot_weight: wondrous ? 0 : (d.slot ?? 1),
-      yield_bio: wondrous ? 0 : (y.bio ?? 0),
-      yield_arcane: wondrous ? 0 : (y.arcane ?? 0),
-      yield_mech: wondrous ? 0 : (y.mech ?? 0),
-      yield_ferrous: wondrous ? 0 : (y.ferrous ?? 0),
+      yield_bio: junk ? (y.bio ?? 0) : 0,
+      yield_arcane: junk ? (y.arcane ?? 0) : 0,
+      yield_mech: junk ? (y.mech ?? 0) : 0,
+      yield_ferrous: junk ? (y.ferrous ?? 0) : 0,
       description: d.description || null,
     };
-    if (!wondrous && row.yield_bio + row.yield_arcane + row.yield_mech + row.yield_ferrous === 0) {
+    if (crafted && row.slot_weight < 1) {
+      errors.push(`${label} (${d.name}): crafted item needs a slot of at least 1`);
+      return;
+    }
+    if (junk && row.yield_bio + row.yield_arcane + row.yield_mech + row.yield_ferrous === 0) {
       errors.push(`${label} (${d.name}): junk item needs at least 1 yield`);
       return;
     }

@@ -155,7 +155,7 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
                     {item && <span className="tag">[ {item.is_wondrous ? 'Wondrous' : quartersToSlots(keepQ)} ]</span>}
                   </div>
                   <div className="subline">
-                    {item ? (def && canBreakdown(def) ? `Breaks into: ${yieldText(item)}` : 'Wondrous: no slot, cannot be broken down') : scrapLine(p.scrap!)}
+                    {item ? (def && canBreakdown(def) ? `Breaks into: ${yieldText(item)}` : (item.is_crafted ? 'Crafted: takes slots, cannot be broken down' : 'Wondrous: no slot, cannot be broken down')) : scrapLine(p.scrap!)}
                   </div>
                   {item?.description && <div className="hint">{item.description}</div>}
                   <FindActions

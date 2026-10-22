@@ -18,6 +18,7 @@ export const toItemDef = (i: Item): ItemDef => ({
   id: i.id,
   name: i.name,
   slotWeight: i.slot_weight,
+  crafted: i.is_crafted,
   yield: { bio: i.yield_bio, arcane: i.yield_arcane, mech: i.yield_mech, ferrous: i.yield_ferrous },
 });
 

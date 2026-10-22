@@ -98,7 +98,7 @@ export interface TradeInput {
 }
 
 /** Selisih ruang (kuartal) di atas kapasitas bila pihak ini mendapat `netQ` tambahan; 0 bila muat atau tidak bertambah. */
-const overflow = (p: Party, netQ: number): number => (netQ > 0 ? Math.max(0, p.usedQ + netQ - p.capacityQ) : 0);
+export const overflow = (p: Party, netQ: number): number => (netQ > 0 ? Math.max(0, p.usedQ + netQ - p.capacityQ) : 0);
 
 export function checkTrade({ mode, offer, request, sender, receiver, defs }: TradeInput): TradeCheck {
   const asked = mode === 'swap' ? request : emptyBundle();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   abilityMod,
+  canBreakdown,
   checkFit,
   dropChances,
   emptyScrap,
@@ -121,6 +122,13 @@ describe('slot dan scrap', () => {
   it('item tanpa yield tidak memakan slot', () => {
     expect(itemQuarters(relik)).toBe(0);
     expect(itemQuarters(kerang)).toBe(8);
+  });
+
+  it('item Crafted memakan slot walau tanpa yield, dan tidak bisa di-breakdown', () => {
+    const pedang: ItemDef = { id: 'pedang', name: 'Pedang', slotWeight: 2, yield: emptyScrap(), crafted: true };
+    expect(itemQuarters(pedang)).toBe(8);
+    expect(canBreakdown(pedang)).toBe(false);
+    expect(usedQuarters([{ item: pedang, quantity: 3 }], emptyScrap())).toBe(24);
   });
 
   it('1 unit scrap = 0,25 slot', () => {

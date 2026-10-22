@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { requireDm } from '@/lib/session';
 import { formatItemId } from '@/lib/ids';
+import { itemCategory } from '@/lib/item';
 import { isUuid, one, type SearchParams } from '@/lib/format';
 import { Flash } from '@/components/Flash';
 import { Header, SubHeader } from '@/components/Header';
@@ -33,12 +34,12 @@ export default async function EditItemPage({
         initial={{
           id: item.id,
           name: item.name,
-          category: item.is_wondrous ? 'wondrous' : 'junk',
+          category: itemCategory(item),
           slot: item.is_wondrous ? '' : String(item.slot_weight),
-          arcane: item.is_wondrous ? '' : String(item.yield_arcane),
-          bio: item.is_wondrous ? '' : String(item.yield_bio),
-          ferrous: item.is_wondrous ? '' : String(item.yield_ferrous),
-          mech: item.is_wondrous ? '' : String(item.yield_mech),
+          arcane: itemCategory(item) === 'junk' ? String(item.yield_arcane) : '',
+          bio: itemCategory(item) === 'junk' ? String(item.yield_bio) : '',
+          ferrous: itemCategory(item) === 'junk' ? String(item.yield_ferrous) : '',
+          mech: itemCategory(item) === 'junk' ? String(item.yield_mech) : '',
           description: item.description ?? '',
         }}
       />

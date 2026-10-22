@@ -9,6 +9,7 @@ const LINKS = [
   ['/dm/characters', 'Characters'],
   ['/dm/items', 'Items'],
   ['/dm/zones', 'Zones'],
+  ['/dm/recipes', 'Recipes'],
   ['/dm/logs', 'Logs'],
 ] as const;
 

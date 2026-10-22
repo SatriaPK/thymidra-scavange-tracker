@@ -1,6 +1,6 @@
 import 'server-only';
 import { db } from './db';
-import { itemHasYield } from './item';
+import { itemCategory, itemHasYield } from './item';
 import { yieldNonZero } from './format';
 import type { PickerItem } from '@/components/ZoneEditor';
 import type { Item, ZoneItem } from './types';
@@ -12,8 +12,8 @@ export async function loadPickerItems(campaignId: string): Promise<PickerItem[]>
     id: i.id,
     no: i.item_no,
     name: i.name,
-    slot: itemHasYield(i) ? i.slot_weight : 0,
-    wondrous: i.is_wondrous,
+    slot: i.is_crafted || itemHasYield(i) ? i.slot_weight : 0,
+    category: itemCategory(i),
     yieldText: yieldNonZero(i),
   }));
 }

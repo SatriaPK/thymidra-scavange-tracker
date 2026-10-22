@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { saveItem } from '@/lib/actions/dm';
+import type { ItemCategory } from '@/lib/item';
 
 export interface ItemFormData {
   id?: string;
   name: string;
-  category: 'junk' | 'wondrous';
+  category: ItemCategory;
   slot: string;
   arcane: string;
   bio: string;
@@ -16,8 +17,9 @@ export interface ItemFormData {
 }
 
 export function ItemForm({ initial }: { initial: ItemFormData }) {
-  const [category, setCategory] = useState<'junk' | 'wondrous'>(initial.category);
+  const [category, setCategory] = useState<ItemCategory>(initial.category);
   const wondrous = category === 'wondrous';
+  const junk = category === 'junk';
 
   return (
     <form action={saveItem} className="sec stack">
@@ -25,8 +27,9 @@ export function ItemForm({ initial }: { initial: ItemFormData }) {
       <input type="hidden" name="category" value={category} />
 
       <div className="seg" role="group" aria-label="Item category">
-        <button type="button" aria-pressed={!wondrous} onClick={() => setCategory('junk')}>Junk Item</button>
+        <button type="button" aria-pressed={junk} onClick={() => setCategory('junk')}>Junk Item</button>
         <button type="button" aria-pressed={wondrous} onClick={() => setCategory('wondrous')}>Wondrous Item</button>
+        <button type="button" aria-pressed={category === 'crafted'} onClick={() => setCategory('crafted')}>Crafted Item</button>
       </div>
 
       <div className="cols">
@@ -37,12 +40,12 @@ export function ItemForm({ initial }: { initial: ItemFormData }) {
         {!wondrous && (
           <label className="field narrow-col">
             <span>Slot<span className="req">*</span></span>
-            <input name="slot_weight" type="number" min={0} max={99} defaultValue={initial.slot} required />
+            <input name="slot_weight" type="number" min={category === 'crafted' ? 1 : 0} max={99} defaultValue={initial.slot} required />
           </label>
         )}
       </div>
 
-      {!wondrous && (
+      {junk && (
         <>
           <div className="grid4">
             <label>
@@ -67,6 +70,11 @@ export function ItemForm({ initial }: { initial: ItemFormData }) {
       )}
       {wondrous && (
         <small className="hint">Wondrous items have no slot weight and no yield.</small>
+      )}
+      {category === 'crafted' && (
+        <small className="hint">
+          Crafted items take slots but have no yield and cannot be broken down. Make them with a recipe, and optionally add them to a zone&apos;s Junk or Rare pool.
+        </small>
       )}
 
       <label className="field">
