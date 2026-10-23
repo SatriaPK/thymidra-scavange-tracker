@@ -17,7 +17,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Se
     <PlayShell title={me.name} active="/play/inventory">
       <Flash error={one(sp.error)} ok={one(sp.ok)} />
       {me.import_allowed && (
-        <div className="warn">
+        <div className="notice">
           Your DM opened paper import. <Link href="/play/import">Import your paper sheet</Link> (one use).
         </div>
       )}

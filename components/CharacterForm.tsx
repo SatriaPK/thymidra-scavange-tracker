@@ -139,15 +139,13 @@ export function CharacterForm({
           <input name="slot_bonus" type="number" min={-20} max={100} value={v.slot_bonus} onChange={text('slot_bonus')} />
         </label>
 
-        <div className="checks">
-          <label className="check">
-            <span>Double base inventory slots? <small>(class feature)</small></span>
+        <div className="stack" style={{ gap: 10 }}>
+          <label className="check-row">
+            <span>Double base inventory slots <small>(class feature)</small></span>
             <input name="feature_double_slots" type="checkbox" checked={v.feature_double_slots} onChange={flag('feature_double_slots')} />
           </label>
-        </div>
-        <div className="checks">
-          <label className="check">
-            <span>Reroll Nat 1 on scavenge? <small>(Halfling Lucky, etc.)</small></span>
+          <label className="check-row">
+            <span>Reroll Nat 1 on scavenge <small>(Halfling Lucky, etc.)</small></span>
             <input name="feature_reroll_nat1" type="checkbox" checked={v.feature_reroll_nat1} onChange={flag('feature_reroll_nat1')} />
           </label>
         </div>

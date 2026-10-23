@@ -79,7 +79,7 @@ export function PaperImportForm({ items, capacity, usedQ }: { items: ImportItem[
         <p className="note">
           Enter what your paper sheet says. You can do this <strong>once</strong>; after you submit, it closes and only your DM can open it again.
         </p>
-        <div className="chips" role="tablist" aria-label="Destination">
+        <div className="chips two" role="tablist" aria-label="Destination">
           {(['inventory', 'storage'] as Loc[]).map((l) => (
             <button key={l} type="button" role="tab" className="chip chip-toggle" aria-pressed={loc === l} onClick={() => setLoc(l)}>
               <span>{cap(l)}{!isEmpty(bags[l]) ? ' •' : ''}</span>
@@ -154,7 +154,6 @@ export function PaperImportForm({ items, capacity, usedQ }: { items: ImportItem[
                       max={MAX_QTY}
                       value={n}
                       aria-label={`Quantity of ${item?.name ?? 'item'}`}
-                      style={{ width: 64 }}
                       onChange={(e) => setQty(l, id, clamp(Number(e.target.value), MAX_QTY))}
                     />
                     <button type="button" className="btn btn-sm btn-ghost" onClick={() => setQty(l, id, 0)}>Remove</button>
