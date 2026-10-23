@@ -8,6 +8,7 @@ import { Dice } from './Dice';
 interface RollResult {
   d20Rolls: number[];
   d20: number;
+  rerolledNat1?: number;
   guidanceRoll: number;
   total: number;
   nat1: boolean;
@@ -87,6 +88,7 @@ export function RollControls({ result }: { result?: RollResult | null }) {
           <div className={`result ${result.success ? (result.nat20 ? 'crit' : 'success') : 'fail'}`}>
             <div className="verdict">{verdict(result)}</div>
             <div className="total">{result.total}</div>
+            {!!result.rerolledNat1 && <div className="subline">Nat 1 rerolled</div>}
             {result.kind === 'rare' && <div className="subline">Rare Find</div>}
             {result.kind === 'jackpot' && <div className="subline">Jackpot</div>}
           </div>

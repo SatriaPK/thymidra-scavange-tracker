@@ -111,6 +111,7 @@ export async function scavenge(formData: FormData) {
     {
       modifier,
       intModifier: abilityMod(me.int_score),
+      rerollNat1: !!me.feature_reroll_nat1,
       advantage: checked(formData, 'advantage'),
       disadvantage: checked(formData, 'disadvantage'),
       guidance: checked(formData, 'guidance'),

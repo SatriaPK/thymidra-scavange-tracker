@@ -71,7 +71,7 @@ export async function loadInventory(me: Character): Promise<Inventory> {
     bags[loc].items.sort((a, b) => a.item.item_no - b.item.item_no);
   }
 
-  const capacity = slotCapacity({ strScore: me.str, slotBonus: me.slot_bonus });
+  const capacity = slotCapacity({ strScore: me.str, slotBonus: me.slot_bonus, doubleBase: me.feature_double_slots });
   const usedQ = usedQuarters(
     bags.inventory.items.map((h) => ({ item: h.def, quantity: h.quantity })),
     bags.inventory.scrap,

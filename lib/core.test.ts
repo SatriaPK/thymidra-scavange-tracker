@@ -535,3 +535,34 @@ describe('reset harian WIB', () => {
     expect(wibDay(new Date('2026-10-16T00:00:00+07:00'))).toBe('2026-10-16');
   });
 });
+describe('class features', () => {
+  it('slotCapacity doubles only the base 10', () => {
+    expect(slotCapacity({ strScore: 9, slotBonus: 2 })).toBe(21);
+    expect(slotCapacity({ strScore: 9, slotBonus: 2, doubleBase: true })).toBe(31);
+  });
+
+  it('rerollNat1 rerolls a natural 1 once and keeps the new result', () => {
+    const r = rollScavenge(seq(dieValue(1, 20), dieValue(1, 20)), { modifier: 0, dc: 10, advantage: false, guidance: false, rerollNat1: true });
+    expect(r.d20).toBe(1); // reroll juga 1: tidak diulang lagi
+    expect(r.rerolledNat1).toBe(1);
+    const ok = rollScavenge(seq(dieValue(1, 20), dieValue(14, 20)), { modifier: 0, dc: 10, advantage: false, guidance: false, rerollNat1: true });
+    expect(ok.d20).toBe(14);
+    expect(ok.nat1).toBe(false);
+    expect(ok.success).toBe(true);
+  });
+
+  it('does not reroll a non-1 or when the feature is off', () => {
+    const a = rollScavenge(seq(dieValue(7, 20)), { modifier: 0, dc: 10, advantage: false, guidance: false, rerollNat1: true });
+    expect(a.rerolledNat1).toBe(0);
+    const b = rollScavenge(seq(dieValue(1, 20)), { modifier: 0, dc: 10, advantage: false, guidance: false });
+    expect(b.nat1).toBe(true);
+    expect(b.rerolledNat1).toBe(0);
+  });
+
+  it('with advantage each die showing 1 is rerolled', () => {
+    const r = rollScavenge(seq(dieValue(1, 20), dieValue(9, 20), dieValue(15, 20)), { modifier: 0, dc: 10, advantage: true, guidance: false, rerollNat1: true });
+    expect(r.d20Rolls).toEqual([9, 15]);
+    expect(r.d20).toBe(15);
+    expect(r.rerolledNat1).toBe(1);
+  });
+});

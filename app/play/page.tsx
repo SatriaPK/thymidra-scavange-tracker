@@ -16,7 +16,7 @@ import type { Campaign, Item, Zone } from '@/lib/types';
 interface Pending { id: string; item_id: string | null; scrap: { bio: number; arcane: number; mech: number; ferrous: number } | null }
 
 interface LastScavenge {
-  roll: { d20Rolls: number[]; d20: number; guidanceRoll: number; modifier: number; total: number; dc: number; nat1: boolean; nat20: boolean; success: boolean; mode: RollMode };
+  roll: { d20Rolls: number[]; d20: number; rerolledNat1?: number; guidanceRoll: number; modifier: number; total: number; dc: number; nat1: boolean; nat20: boolean; success: boolean; mode: RollMode };
   kind: OutcomeKind;
   items: { name: string }[];
   loose_scrap: { bio: number; arcane: number; mech: number; ferrous: number } | null;

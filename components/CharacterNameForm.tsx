@@ -8,12 +8,14 @@ export function CharacterNameForm({
   id,
   name,
   code,
+  features,
   submitLabel,
 }: {
   id?: string;
   name: string;
   /** Kode akses yang sudah dibuat (karakter baru). Dikirim bersama form. */
   code?: string;
+  features?: { doubleSlots: boolean; rerollNat1: boolean };
   submitLabel: string;
 }) {
   return (
@@ -29,6 +31,18 @@ export function CharacterNameForm({
         <small className="hint">
           The player fills in their own class, level, and stats the first time they log in with the code.
         </small>
+      </div>
+
+      <div className="sec stack">
+        <span className="hint">Class features</span>
+        <label className="check">
+          <input type="checkbox" name="feature_double_slots" defaultChecked={features?.doubleSlots ?? false} />
+          <span>Double base inventory slots (10 → 20)</span>
+        </label>
+        <label className="check">
+          <input type="checkbox" name="feature_reroll_nat1" defaultChecked={features?.rerollNat1 ?? false} />
+          <span>Reroll Nat 1 on scavenge (like Halfling Lucky)</span>
+        </label>
       </div>
 
       <div className="sec">

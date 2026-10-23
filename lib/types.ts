@@ -55,6 +55,9 @@ export interface Character {
   invest_expertise: boolean;
   invest_bonus: number;
   slot_bonus: number;
+  /** Fitur karakter, diatur DM. */
+  feature_double_slots: boolean;
+  feature_reroll_nat1: boolean;
   pending_exhaustion: number;
   setup_done: boolean;
 }

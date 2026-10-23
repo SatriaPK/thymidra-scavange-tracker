@@ -50,7 +50,7 @@ export default async function CharacterViewPage({
       <div className="rows">
         <div className="kv rule"><span className="k">Class</span><span className="v">{c.class || '-'}</span></div>
         <div className="kv"><span className="k">Character Level</span><span className="v">{c.level}</span></div>
-        <div className="kv"><span className="k">Inventory Slot</span><span className="v">{slotCapacity({ strScore: c.str, slotBonus: c.slot_bonus })}</span></div>
+        <div className="kv"><span className="k">Inventory Slot</span><span className="v">{slotCapacity({ strScore: c.str, slotBonus: c.slot_bonus, doubleBase: c.feature_double_slots })}</span></div>
       </div>
 
       <div className="abil">
@@ -69,6 +69,7 @@ export default async function CharacterViewPage({
       <div className="rows rule">
         <div className="kv"><span className="k">Bonus Investigation Modifier</span><span className="v">{sign(c.invest_bonus)}</span></div>
         <div className="kv"><span className="k">Bonus Inventory Slot</span><span className="v">{sign(c.slot_bonus)}</span></div>
+        <div className="kv"><span className="k">Class Features</span><span className="v">{[c.feature_double_slots && 'Double base slots', c.feature_reroll_nat1 && 'Reroll Nat 1'].filter(Boolean).join(' · ') || 'None'}</span></div>
       </div>
 
       <div className="sec rule actions">

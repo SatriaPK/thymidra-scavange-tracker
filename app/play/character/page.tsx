@@ -64,7 +64,7 @@ export default async function CharacterPage() {
           </div>
           <div className="character-stat">
             <span className="character-stat-label">Inventory Slots</span>
-            <strong>{slotCapacity({ strScore: me.str, slotBonus: me.slot_bonus })}</strong>
+            <strong>{slotCapacity({ strScore: me.str, slotBonus: me.slot_bonus, doubleBase: me.feature_double_slots })}</strong>
           </div>
         </div>
       </section>
@@ -74,6 +74,12 @@ export default async function CharacterPage() {
         <div className="kv"><span className="k">Investigation Expertise</span><span className="v">{me.invest_expertise ? 'Yes' : 'No'}</span></div>
         <div className="kv"><span className="k">Bonus Investigation Modifier</span><span className="v">{sign(me.invest_bonus)}</span></div>
         <div className="kv"><span className="k">Bonus Inventory Slots</span><span className="v">{sign(me.slot_bonus)}</span></div>
+        {(me.feature_double_slots || me.feature_reroll_nat1) && (
+          <div className="kv">
+            <span className="k">Class Features</span>
+            <span className="v">{[me.feature_double_slots && 'Double base slots', me.feature_reroll_nat1 && 'Reroll Nat 1'].filter(Boolean).join(' · ')}</span>
+          </div>
+        )}
       </section>
     </PlayShell>
   );

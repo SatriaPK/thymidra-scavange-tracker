@@ -29,9 +29,11 @@ export function investigationModifier(c: InvestigationInput): number {
   return abilityMod(c.intScore) + profPart + c.bonus;
 }
 
-/** Kapasitas inventori dalam slot penuh: 10 + STR + bonus manual. */
-export function slotCapacity(c: { strScore: number; slotBonus: number }): number {
-  return 10 + c.strScore + c.slotBonus;
+export const BASE_SLOTS = 10;
+
+/** Kapasitas inventori dalam slot penuh: 10 (20 bila fitur slot dasar x2) + STR + bonus manual. */
+export function slotCapacity(c: { strScore: number; slotBonus: number; doubleBase?: boolean }): number {
+  return BASE_SLOTS * (c.doubleBase ? 2 : 1) + c.strScore + c.slotBonus;
 }
 
 // ---------- Item dan scrap ----------
@@ -151,12 +153,15 @@ export interface ScavengeRollInput {
   advantage: boolean;
   disadvantage?: boolean;
   guidance: boolean;
+  /** Fitur karakter (mis. Halfling): d20 yang muncul 1 diulang satu kali, hasil ulang wajib dipakai. */
+  rerollNat1?: boolean;
 }
 
 export interface ScavengeRoll {
   mode: RollMode;
   d20Rolls: number[]; // 1 dadu, atau 2 bila Advantage/Disadvantage
   d20: number; // dadu terpilih
+  rerolledNat1?: number; // banyaknya dadu yang muncul 1 lalu diulang (0 / tidak ada bila fitur tidak aktif)
   guidanceRoll: number; // 0 bila tidak memakai Guidance
   modifier: number;
   total: number;
@@ -168,7 +173,17 @@ export interface ScavengeRoll {
 
 export function rollScavenge(rng: Rng, input: ScavengeRollInput): ScavengeRoll {
   const mode = rollMode(input.advantage, input.disadvantage ?? false);
-  const d20Rolls = mode === 'normal' ? [rollDie(rng, 20)] : [rollDie(rng, 20), rollDie(rng, 20)];
+  let rerolledNat1 = 0;
+  // Reroll hanya terjadi bila dadu menunjukkan 1, bukan dadu tambahan seperti Advantage.
+  const rollD20 = () => {
+    const v = rollDie(rng, 20);
+    if (input.rerollNat1 && v === 1) {
+      rerolledNat1++;
+      return rollDie(rng, 20);
+    }
+    return v;
+  };
+  const d20Rolls = mode === 'normal' ? [rollD20()] : [rollD20(), rollD20()];
   const d20 = mode === 'disadvantage' ? Math.min(...d20Rolls) : Math.max(...d20Rolls);
   const guidanceRoll = input.guidance ? rollDie(rng, 4) : 0;
   const total = d20 + input.modifier + guidanceRoll;
@@ -180,6 +195,7 @@ export function rollScavenge(rng: Rng, input: ScavengeRollInput): ScavengeRoll {
     mode,
     d20Rolls,
     d20,
+    rerolledNat1,
     guidanceRoll,
     modifier: input.modifier,
     total,

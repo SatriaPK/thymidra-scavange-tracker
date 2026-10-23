@@ -16,8 +16,13 @@ Input: level, 6 ability score, proficiency Investigation (ya/tidak), expertise (
 - Proficiency bonus = `2 + floor((level - 1) / 4)`
 - Modifier Intelligence (`mod(INT)`) = `floor((INT score - 10) / 2)`. Murni dari ability score, tanpa proficiency, expertise, atau bonus.
 - Modifier Investigation = `mod(INT) + (proficient ? PB : 0) + (expertise ? PB : 0) + bonus`
-- Kapasitas inventori (slot) = `10 + STR score + bonus slot`
-- Contoh: STR 9 → 19 slot.
+- Kapasitas inventori (slot) = `10 + STR score + bonus slot` (basis 10 menjadi 20 bila karakter punya fitur *Slot dasar x2*)
+- Contoh: STR 9 → 19 slot (29 dengan fitur Slot dasar x2).
+
+**Fitur class (diatur DM):** di form karakter DM mencentang fitur per karakter; pemain hanya melihatnya. Class tetap teks bebas.
+- *Slot dasar x2*: basis kapasitas 10 menjadi 20 (STR dan bonus slot tidak digandakan).
+- *Reroll Nat 1* (seperti Halfling): bila d20 scavenge menunjukkan 1, dadu itu diulang satu kali dan hasil ulang wajib dipakai (tidak ada dadu tambahan bila bukan 1). Dengan Advantage/Disadvantage, tiap dadu yang menunjukkan 1 diulang. Bila hasil ulang juga 1, tetap Nat 1.
+- Migrasi: `class-features.sql` (dua kolom boolean di `character`, default false).
 
 ## Item
 
