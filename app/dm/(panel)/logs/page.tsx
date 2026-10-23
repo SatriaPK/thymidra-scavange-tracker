@@ -44,6 +44,13 @@ function describe(row: LogRow): string {
       return `Kept ${p.name}${p.scrap && scrapText(p.scrap) ? ` (${scrapText(p.scrap)})` : ''} in ${p.dest === 'storage' ? 'Storage' : 'Inventory'}${p.dropped_scrap ? `, discarded ${scrapText(p.dropped_scrap)}` : ''}`;
     case 'transfer':
       return `Moved ${p.qty ? `${p.qty}x ` : ''}${p.name}: ${p.from} → ${p.to}`;
+    case 'paper_import': {
+      const part = (b: { items?: { name: string; qty: number }[]; scrap?: unknown } | undefined) =>
+        [...(b?.items ?? []).map((i) => `${i.qty}x ${i.name}`), b?.scrap ? `Scrap (${scrapText(b.scrap)})` : ''].filter(Boolean).join(', ');
+      const inv = part(p.inventory);
+      const sto = part(p.storage);
+      return `Imported from paper → ${[inv && `Inventory: ${inv}`, sto && `Storage: ${sto}`].filter(Boolean).join(' | ')}`;
+    }
     case 'trade':
       return 'Trade';
     default:

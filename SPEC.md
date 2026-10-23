@@ -89,3 +89,15 @@ Ringkasan:
 - Semua scavenge (roll, hasil, pilihan), breakdown, pemindahan, dan barter tercatat.
 - Log scavenge menyimpan tingkat hasil (Nat 1, Nat 20, Fail, Low Success, High Success) dan jumlah serta tipe loose scrap bila ada.
 - DM dapat melihat seluruh log dan membatalkan aksi tertentu.
+
+## Impor dari kertas (sekali pakai)
+
+Untuk memindahkan isi catatan kertas ke versi digital.
+
+- DM membuka izin per karakter dari halaman detail karakter (**Open paper import**). Kolom `character.import_allowed` (migrasi `paper-import.sql`).
+- Pemain yang izinnya terbuka melihat banner di Home dan Inventory, lalu membuka `/play/import`. Tanpa izin, halaman itu hanya menampilkan "Not open".
+- Di halaman impor pemain mencari item (nama atau ID), mengisi jumlah, dan mengisi scrap per jenis, terpisah untuk **Inventory** dan **Storage**. Pratinjau slot Inventory tampil langsung.
+- Item dipilih dari daftar item campaign; item yang belum ada harus dibuat DM dulu.
+- Aturan: bagian Inventory harus muat di kapasitas (dihitung bersama isi Inventory saat ini); Storage tanpa batas. Maks 100 baris item, 99 per item, 999 per jenis scrap.
+- **Sekali pakai:** saat dikirim, izin ditutup secara atomik (`import_allowed` true → false) sebelum apa pun ditambahkan, jadi klik ganda atau izin yang ditutup DM di tengah jalan tidak menambah apa pun. Bila penyimpanan gagal, yang sudah masuk dibatalkan dan izin dibuka lagi. DM boleh membuka izin lagi kapan saja.
+- Dicatat di log DM sebagai `paper_import` (item dan scrap per tujuan).

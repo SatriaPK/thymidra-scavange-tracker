@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requirePlayer } from '@/lib/session';
 import { loadInventory } from '@/lib/inventory';
@@ -15,6 +16,11 @@ export default async function InventoryPage({ searchParams }: { searchParams: Se
   return (
     <PlayShell title={me.name} active="/play/inventory">
       <Flash error={one(sp.error)} ok={one(sp.ok)} />
+      {me.import_allowed && (
+        <div className="warn">
+          Your DM opened paper import. <Link href="/play/import">Import your paper sheet</Link> (one use).
+        </div>
+      )}
       <InventoryView inv={inv} loc="inventory" selected={one(sp.scrap)} />
     </PlayShell>
   );

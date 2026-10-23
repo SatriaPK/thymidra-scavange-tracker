@@ -58,6 +58,8 @@ export interface Character {
   /** Fitur karakter, diatur pemain. */
   feature_double_slots: boolean;
   feature_reroll_nat1: boolean;
+  /** DM membuka izin impor dari kertas; menutup otomatis setelah dipakai sekali. */
+  import_allowed: boolean;
   pending_exhaustion: number;
   setup_done: boolean;
 }

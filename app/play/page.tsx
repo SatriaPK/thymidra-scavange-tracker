@@ -90,6 +90,11 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
     <PlayShell title={me.name} active="/play">
       <AutoRefresh />
       <Flash error={one(sp.error)} ok={one(sp.ok)} />
+      {me.import_allowed && (
+        <div className="warn">
+          Your DM opened paper import. <Link href="/play/import">Import your paper sheet</Link> (one use).
+        </div>
+      )}
 
       <main className="player-dashboard-grid">
         <section className="sec">
