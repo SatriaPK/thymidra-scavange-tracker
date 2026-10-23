@@ -28,7 +28,7 @@ export default async function EditCharacterPage({
       <Header title="Characters" />
       <SubHeader back={`/dm/characters/${c.id}`} title="Edit Character" right={c.access_code} rightClass="code" />
       <Flash error={one(sp.error)} ok={one(sp.ok)} />
-      <CharacterNameForm id={c.id} name={c.name} features={{ doubleSlots: c.feature_double_slots, rerollNat1: c.feature_reroll_nat1 }} submitLabel="Save Character" />
+      <CharacterNameForm id={c.id} name={c.name} submitLabel="Save Character" />
     </>
   );
 }

@@ -18,6 +18,8 @@ export interface CharacterFormValues {
   invest_expertise: boolean;
   invest_bonus: string;
   slot_bonus: string;
+  feature_double_slots: boolean;
+  feature_reroll_nat1: boolean;
 }
 
 const ABILITIES = [
@@ -54,7 +56,7 @@ export function CharacterForm({
   const [v, setV] = useState<CharacterFormValues>(initial);
   const text = (k: keyof CharacterFormValues) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setV((p) => ({ ...p, [k]: e.target.value }));
-  const flag = (k: 'invest_proficient' | 'invest_expertise') => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const flag = (k: 'invest_proficient' | 'invest_expertise' | 'feature_double_slots' | 'feature_reroll_nat1') => (e: React.ChangeEvent<HTMLInputElement>) =>
     setV((p) => ({ ...p, [k]: e.target.checked }));
 
   const level = Math.min(20, Math.max(1, toInt(v.level) || 1));
@@ -67,7 +69,7 @@ export function CharacterForm({
     expertise,
     bonus: toInt(v.invest_bonus),
   });
-  const slots = slotCapacity({ strScore: toInt(v.str) || 10, slotBonus: toInt(v.slot_bonus) });
+  const slots = slotCapacity({ strScore: toInt(v.str) || 10, slotBonus: toInt(v.slot_bonus), doubleBase: v.feature_double_slots });
 
   return (
     <form action={action}>
@@ -136,6 +138,19 @@ export function CharacterForm({
           <span>Bonus Inventory Slot <small>(Magical Item, Powerful Build, etc.)</small></span>
           <input name="slot_bonus" type="number" min={-20} max={100} value={v.slot_bonus} onChange={text('slot_bonus')} />
         </label>
+
+        <div className="checks">
+          <label className="check">
+            <span>Double base inventory slots? <small>(class feature)</small></span>
+            <input name="feature_double_slots" type="checkbox" checked={v.feature_double_slots} onChange={flag('feature_double_slots')} />
+          </label>
+        </div>
+        <div className="checks">
+          <label className="check">
+            <span>Reroll Nat 1 on scavenge? <small>(Halfling Lucky, etc.)</small></span>
+            <input name="feature_reroll_nat1" type="checkbox" checked={v.feature_reroll_nat1} onChange={flag('feature_reroll_nat1')} />
+          </label>
+        </div>
 
         <div className="preview">
           <div className="kv"><span className="k">Proficiency Bonus</span><span className="v">{sign(proficiencyBonus(level))}</span></div>

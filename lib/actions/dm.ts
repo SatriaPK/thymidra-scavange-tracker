@@ -355,12 +355,6 @@ const characterNameSchema = z.object({
   name: z.string().trim().min(1, 'is required').max(40),
 });
 
-/** Fitur karakter dikirim sebagai checkbox: ada = aktif. */
-const featuresOf = (formData: FormData) => ({
-  feature_double_slots: formData.get('feature_double_slots') === 'on',
-  feature_reroll_nat1: formData.get('feature_reroll_nat1') === 'on',
-});
-
 // Nilai awal sebelum pemain mengisi karakternya (sama dengan default di schema.sql).
 const CHARACTER_DEFAULTS = {
   class: '',
@@ -388,8 +382,8 @@ export async function saveCharacterDm(formData: FormData) {
   const duplicate = 'That character name is already taken.';
 
   if (id) {
-    // Mengedit hanya mengubah nama dan fitur: stat dan status setup milik pemain tidak disentuh.
-    const { error } = await db().from('character').update({ name, ...featuresOf(formData) }).eq('id', id).eq('campaign_id', campaign.id);
+    // Mengedit hanya mengubah nama: stat dan status setup milik pemain tidak disentuh.
+    const { error } = await db().from('character').update({ name }).eq('id', id).eq('campaign_id', campaign.id);
     if (error) go(back, 'error', error.code === '23505' ? duplicate : 'Could not save the character.');
     revalidatePath('/dm/characters');
     go('/dm/characters', 'ok', `Character "${name}" saved.`);
@@ -401,7 +395,7 @@ export async function saveCharacterDm(formData: FormData) {
   const charNo = (await maxNo('character', 'char_no', campaign.id)) + 1;
   const { error } = await db()
     .from('character')
-    .insert({ ...CHARACTER_DEFAULTS, ...featuresOf(formData), name, setup_done: false, campaign_id: campaign.id, char_no: charNo, access_code: code });
+    .insert({ ...CHARACTER_DEFAULTS, name, setup_done: false, campaign_id: campaign.id, char_no: charNo, access_code: code });
   if (error) go(back, 'error', error.code === '23505' ? duplicate : 'Could not create the character.');
 
   revalidatePath('/dm/characters');

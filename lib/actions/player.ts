@@ -24,6 +24,7 @@ const characterSchema = z.object({
 const STAT_KEYS = [
   'class', 'level', 'str', 'dex', 'con', 'int_score', 'wis', 'cha',
   'invest_proficient', 'invest_expertise', 'invest_bonus', 'slot_bonus',
+  'feature_double_slots', 'feature_reroll_nat1',
 ] as const;
 
 export async function saveCharacter(formData: FormData) {
@@ -38,7 +39,13 @@ export async function saveCharacter(formData: FormData) {
   const proficient = formData.get('invest_proficient') === 'on';
   // Expertise hanya berlaku bila proficient.
   const expertise = proficient && formData.get('invest_expertise') === 'on';
-  const next = { ...parsed.data, invest_proficient: proficient, invest_expertise: expertise };
+  const next = {
+    ...parsed.data,
+    invest_proficient: proficient,
+    invest_expertise: expertise,
+    feature_double_slots: formData.get('feature_double_slots') === 'on',
+    feature_reroll_nat1: formData.get('feature_reroll_nat1') === 'on',
+  };
 
   const { error } = await db()
     .from('character')

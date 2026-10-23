@@ -19,7 +19,7 @@ Input: level, 6 ability score, proficiency Investigation (ya/tidak), expertise (
 - Kapasitas inventori (slot) = `10 + STR score + bonus slot` (basis 10 menjadi 20 bila karakter punya fitur *Slot dasar x2*)
 - Contoh: STR 9 → 19 slot (29 dengan fitur Slot dasar x2).
 
-**Fitur class (diatur DM):** di form karakter DM mencentang fitur per karakter; pemain hanya melihatnya. Class tetap teks bebas.
+**Fitur class (diatur pemain):** pemain mencentang fitur di form karakternya sendiri (DM hanya melihatnya di detail karakter). Class tetap teks bebas.
 - *Slot dasar x2*: basis kapasitas 10 menjadi 20 (STR dan bonus slot tidak digandakan).
 - *Reroll Nat 1* (seperti Halfling): bila d20 scavenge menunjukkan 1, dadu itu diulang satu kali dan hasil ulang wajib dipakai (tidak ada dadu tambahan bila bukan 1). Dengan Advantage/Disadvantage, tiap dadu yang menunjukkan 1 diulang. Bila hasil ulang juga 1, tetap Nat 1.
 - Migrasi: `class-features.sql` (dua kolom boolean di `character`, default false).

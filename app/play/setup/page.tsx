@@ -41,6 +41,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Search
           invest_expertise: me.invest_expertise,
           invest_bonus: me.setup_done ? String(me.invest_bonus) : '',
           slot_bonus: me.setup_done ? String(me.slot_bonus) : '',
+          feature_double_slots: !!me.feature_double_slots,
+          feature_reroll_nat1: !!me.feature_reroll_nat1,
         }}
       />
     </div>
