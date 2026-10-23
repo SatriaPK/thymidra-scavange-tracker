@@ -173,18 +173,17 @@ export interface ScavengeRoll {
 
 export function rollScavenge(rng: Rng, input: ScavengeRollInput): ScavengeRoll {
   const mode = rollMode(input.advantage, input.disadvantage ?? false);
+  const d20Rolls = mode === 'normal' ? [rollDie(rng, 20)] : [rollDie(rng, 20), rollDie(rng, 20)];
+  const pick = () => (mode === 'disadvantage' ? Math.min(...d20Rolls) : Math.max(...d20Rolls));
+  // Reroll hanya satu kali per roll, dan hanya bila dadu yang terpilih menunjukkan 1 (bukan dadu tambahan).
+  // Advantage 1 & 1: satu dadu diulang, hasilnya jadi pilihan. Disadvantage 1 & 15: dadu 1 diulang, lalu
+  // dipilih yang terendah dari hasil ulang dan 15. Hasil ulang wajib dipakai, walau 1 lagi.
   let rerolledNat1 = 0;
-  // Reroll hanya terjadi bila dadu menunjukkan 1, bukan dadu tambahan seperti Advantage.
-  const rollD20 = () => {
-    const v = rollDie(rng, 20);
-    if (input.rerollNat1 && v === 1) {
-      rerolledNat1++;
-      return rollDie(rng, 20);
-    }
-    return v;
-  };
-  const d20Rolls = mode === 'normal' ? [rollD20()] : [rollD20(), rollD20()];
-  const d20 = mode === 'disadvantage' ? Math.min(...d20Rolls) : Math.max(...d20Rolls);
+  if (input.rerollNat1 && pick() === 1) {
+    d20Rolls[d20Rolls.indexOf(1)] = rollDie(rng, 20);
+    rerolledNat1 = 1;
+  }
+  const d20 = pick();
   const guidanceRoll = input.guidance ? rollDie(rng, 4) : 0;
   const total = d20 + input.modifier + guidanceRoll;
   const nat1 = d20 === 1;

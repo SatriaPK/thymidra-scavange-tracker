@@ -21,7 +21,7 @@ Input: level, 6 ability score, proficiency Investigation (ya/tidak), expertise (
 
 **Fitur class (diatur pemain):** pemain mencentang fitur di form karakternya sendiri (DM hanya melihatnya di detail karakter). Class tetap teks bebas.
 - *Slot dasar x2*: basis kapasitas 10 menjadi 20 (STR dan bonus slot tidak digandakan).
-- *Reroll Nat 1* (seperti Halfling): bila d20 scavenge menunjukkan 1, dadu itu diulang satu kali dan hasil ulang wajib dipakai (tidak ada dadu tambahan bila bukan 1). Dengan Advantage/Disadvantage, tiap dadu yang menunjukkan 1 diulang. Bila hasil ulang juga 1, tetap Nat 1.
+- *Reroll Nat 1* (seperti Halfling): bila d20 scavenge menunjukkan 1, dadu itu diulang satu kali dan hasil ulang wajib dipakai (tidak ada dadu tambahan bila bukan 1). Reroll hanya satu kali per roll, dan hanya bila dadu yang terpilih menunjukkan 1. Bila hasil ulang juga 1, tetap Nat 1. Advantage 1 & 1: satu dadu diulang. Advantage 1 & 15: tidak ada reroll (15 terpilih). Disadvantage 1 & 1: reroll tidak membantu, tetap 1. Disadvantage 1 & 15: dadu 1 diulang, lalu dipakai yang terendah dari hasil ulang dan 15.
 - Migrasi: `class-features.sql` (dua kolom boolean di `character`, default false).
 
 ## Item

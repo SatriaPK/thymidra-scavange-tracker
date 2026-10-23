@@ -559,10 +559,32 @@ describe('class features', () => {
     expect(b.rerolledNat1).toBe(0);
   });
 
-  it('with advantage each die showing 1 is rerolled', () => {
-    const r = rollScavenge(seq(dieValue(1, 20), dieValue(9, 20), dieValue(15, 20)), { modifier: 0, dc: 10, advantage: true, guidance: false, rerollNat1: true });
-    expect(r.d20Rolls).toEqual([9, 15]);
-    expect(r.d20).toBe(15);
+  const base = { modifier: 0, dc: 10, guidance: false, rerollNat1: true };
+
+  it('advantage 1 and 1: only one die is rerolled, new result is used', () => {
+    const r = rollScavenge(seq(dieValue(1, 20), dieValue(1, 20), dieValue(12, 20)), { ...base, advantage: true });
     expect(r.rerolledNat1).toBe(1);
+    expect(r.d20).toBe(12);
+  });
+
+  it('advantage 1 and 15: no reroll, 15 is already chosen', () => {
+    const r = rollScavenge(seq(dieValue(1, 20), dieValue(15, 20)), { ...base, advantage: true });
+    expect(r.rerolledNat1).toBe(0);
+    expect(r.d20).toBe(15);
+  });
+
+  it('disadvantage 1 and 1: reroll cannot help, stays 1', () => {
+    const r = rollScavenge(seq(dieValue(1, 20), dieValue(1, 20), dieValue(17, 20)), { ...base, advantage: false, disadvantage: true });
+    expect(r.rerolledNat1).toBe(1);
+    expect(r.d20).toBe(1);
+    expect(r.nat1).toBe(true);
+  });
+
+  it('disadvantage 1 and 15: reroll the 1, take the lower of new roll and 15', () => {
+    const high = rollScavenge(seq(dieValue(1, 20), dieValue(15, 20), dieValue(18, 20)), { ...base, advantage: false, disadvantage: true });
+    expect(high.d20).toBe(15);
+    const low = rollScavenge(seq(dieValue(1, 20), dieValue(15, 20), dieValue(6, 20)), { ...base, advantage: false, disadvantage: true });
+    expect(low.d20).toBe(6);
+    expect(low.rerolledNat1).toBe(1);
   });
 });
