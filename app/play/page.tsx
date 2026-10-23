@@ -6,6 +6,8 @@ import { MAX_SCAVENGES_PER_DAY, abilityMod, canBreakdown, freeQuarters, investig
 import { one, sign, yieldText, type SearchParams } from '@/lib/format';
 import { loadInventory, toItemDef } from '@/lib/inventory';
 import { decideFind, scavenge } from '@/lib/actions/scavenge';
+import { clearExhaustion } from '@/lib/actions/exhaustion';
+import { ConfirmSubmit } from '@/components/ConfirmSubmit';
 import { Flash } from '@/components/Flash';
 import { PlayShell } from '@/components/PlayShell';
 import { AutoRefresh } from '@/components/AutoRefresh';
@@ -96,6 +98,25 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
         </div>
       )}
 
+      {me.pending_exhaustion > 0 && (
+        <div className="exhaust" role="status">
+          <div>
+            <strong>Exhaustion ×{me.pending_exhaustion}</strong>
+            <span>From a Nat 1 on scavenge. Your DM applies it in the session; clear this once it has been applied.</span>
+          </div>
+          <form action={clearExhaustion}>
+            <ConfirmSubmit
+              className="btn btn-sm btn-ghost"
+              dialogTitle="Clear exhaustion notice?"
+              confirmLabel="Clear"
+              message="Only clear this after your DM has applied the exhaustion in the session. It cannot be undone."
+            >
+              Clear
+            </ConfirmSubmit>
+          </form>
+        </div>
+      )}
+
       <main className="player-dashboard-grid">
         <section className="sec">
           <div className="stats">
@@ -131,9 +152,6 @@ export default async function PlayPage({ searchParams }: { searchParams: SearchP
               <RollControls result={last?.roll ? { ...last.roll, kind: last.kind } : null} />
               <RollButton disabled={!canRoll} label={canRoll ? 'Roll Scavenge' : (blocked ?? 'Roll Scavenge')} />
             </form>
-          )}
-          {me.pending_exhaustion > 0 && (
-            <p className="hint" style={{ marginTop: 10 }}>Exhaustion pending: {me.pending_exhaustion} (from a Nat 1). Tell your DM.</p>
           )}
         </section>
       </main>

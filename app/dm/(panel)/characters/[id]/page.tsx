@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { requireDm } from '@/lib/session';
 import { resetCharacterCode } from '@/lib/actions/dm';
 import { setPaperImport } from '@/lib/actions/paper-import';
+import { clearExhaustionDm } from '@/lib/actions/exhaustion';
 import { abilityMod, slotCapacity } from '@/lib/core';
 import { isUuid, one, sign, type SearchParams } from '@/lib/format';
 import { Flash } from '@/components/Flash';
@@ -73,6 +74,20 @@ export default async function CharacterViewPage({
         <div className="kv"><span className="k">Class Features</span><span className="v">{[c.feature_double_slots && 'Double base slots', c.feature_reroll_nat1 && 'Reroll Nat 1'].filter(Boolean).join(' · ') || 'None'}</span></div>
       </div>
 
+      <div className="rows rule">
+        <div className="kv">
+          <span className="k">Exhaustion</span>
+          <span className={c.pending_exhaustion > 0 ? 'v tag-red' : 'v'}>{c.pending_exhaustion > 0 ? `×${c.pending_exhaustion} pending` : 'None'}</span>
+        </div>
+      </div>
+      {c.pending_exhaustion > 0 && (
+        <div className="sec">
+          <form action={clearExhaustionDm}>
+            <input type="hidden" name="id" value={c.id} />
+            <button type="submit" className="btn btn-ghost">Clear exhaustion (already applied)</button>
+          </form>
+        </div>
+      )}
       <div className="rows rule">
         <div className="kv">
           <span className="k">Paper import</span>

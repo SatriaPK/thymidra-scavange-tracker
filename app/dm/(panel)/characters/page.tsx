@@ -34,7 +34,7 @@ export default async function CharactersPage({ searchParams }: { searchParams: S
       id: c.id,
       title: c.name,
       tag: left,
-      sub: c.setup_done ? `${c.class || '-'} Lv. ${c.level}` : 'Waiting for the player to fill in the character',
+      sub: (c.setup_done ? `${c.class || '-'} Lv. ${c.level}` : 'Waiting for the player to fill in the character') + (c.pending_exhaustion > 0 ? ` · Exhaustion ×${c.pending_exhaustion}` : ''),
       idLabel: `ID: ${formatCharId(c.char_no)}`,
       editHref: `/dm/characters/${c.id}/edit`,
       viewHref: `/dm/characters/${c.id}`,
@@ -57,6 +57,7 @@ export default async function CharactersPage({ searchParams }: { searchParams: S
             : '-',
         ],
         ['Daily Scavenge', left],
+        ['Exhaustion', c.pending_exhaustion > 0 ? `×${c.pending_exhaustion}` : 'None'],
       ],
     };
   });
