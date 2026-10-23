@@ -24,8 +24,8 @@ const KIND: Record<string, string> = {
 
 const ACTIONS: [string, string][] = [
   ['scavenge', 'Scavenge'],
-  ['decision', 'Find decision (keep / breakdown / discard)'],
-  ['transfer', 'Move (Inventory / Storage)'],
+  ['decision', 'Find decision'],
+  ['transfer', 'Move item'],
   ['trade', 'Trade'],
   ['paper_import', 'Paper import'],
   ['stat_edit', 'Character edit'],
@@ -122,7 +122,8 @@ export default async function LogsPage({ searchParams }: { searchParams: SearchP
   const logs = all.slice(0, limit);
   const chars = (charsRes.data ?? []) as { id: string; name: string }[];
   const names = new Map(chars.map((c) => [c.id, c.name]));
-  const filtered = !!(isUuid(fChar) || fAction || fOutcome || range);
+  const activeCount = [isUuid(fChar), !!fAction, !!fOutcome, !!range].filter(Boolean).length;
+  const filtered = activeCount > 0;
 
   const more = new URLSearchParams();
   for (const [k, v] of Object.entries({ character: fChar, action: fAction, outcome: fOutcome, day: fDay })) if (v) more.set(k, v);
@@ -132,37 +133,43 @@ export default async function LogsPage({ searchParams }: { searchParams: SearchP
     <>
       <Header title="Logs" />
       <section className="sec">
-        <form className="log-filter" method="get">
-          <label className="field">
-            <span>Character</span>
-            <select name="character" defaultValue={isUuid(fChar) ? fChar : ''}>
-              <option value="">All characters</option>
-              {chars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>Action</span>
-            <select name="action" defaultValue={fAction}>
-              <option value="">All actions</option>
-              {ACTIONS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>Scavenge result</span>
-            <select name="outcome" defaultValue={fOutcome}>
-              <option value="">Any result</option>
-              {OUTCOMES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>Date (WIB)</span>
-            <input type="date" name="day" defaultValue={range ? fDay : ''} />
-          </label>
-          <div className="btns-row">
-            <button type="submit" className="btn">Apply filter</button>
-            {filtered && <Link href="/dm/logs" className="btn btn-ghost">Reset</Link>}
-          </div>
-        </form>
+        <details className="log-filter-box" open={filtered}>
+          <summary>
+            <span>Filter</span>
+            {activeCount > 0 && <span className="count">{activeCount} active</span>}
+          </summary>
+          <form className="log-filter" method="get">
+            <label className="field">
+              <span>Character</span>
+              <select name="character" defaultValue={isUuid(fChar) ? fChar : ''}>
+                <option value="">All characters</option>
+                {chars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Action</span>
+              <select name="action" defaultValue={fAction}>
+                <option value="">All actions</option>
+                {ACTIONS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Scavenge result</span>
+              <select name="outcome" defaultValue={fOutcome}>
+                <option value="">Any result</option>
+                {OUTCOMES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Date (WIB)</span>
+              <input type="date" name="day" defaultValue={range ? fDay : ''} />
+            </label>
+            <div className="btns-row">
+              <button type="submit" className="btn">Apply filter</button>
+              {filtered && <Link href="/dm/logs" className="btn btn-ghost">Reset</Link>}
+            </div>
+          </form>
+        </details>
       </section>
 
       <section className="sec">
